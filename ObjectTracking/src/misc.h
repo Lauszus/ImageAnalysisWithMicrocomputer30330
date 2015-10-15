@@ -5,7 +5,8 @@
 
 enum Connected {
     CONNECTED_4 = 0,
-    CONNECTED_8 = 1,
+    CONNECTED_6,
+    CONNECTED_8,
 };
 
 #endif

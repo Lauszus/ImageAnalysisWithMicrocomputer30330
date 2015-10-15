@@ -1,0 +1,201 @@
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+
+#include "histogram.h"
+#include "misc.h"
+
+using namespace std;
+using namespace cv;
+
+static void checkNeighbors(const Mat *image, int *pos, uint8_t *index, const int width, Connected connected, bool whitePixels) {
+    const int contourArray[8] = {
+            1,          // (x + 1, y)
+            width + 1,  // (x + 1, y + 1)
+            width,      // (x, y + 1)
+            width - 1,  // (x - 1, y + 1)
+            -1,         // (x - 1, y)
+            -width - 1, // (x - 1, y - 1)
+            -width,     // (x, y - 1)
+            -width + 1, // (x + 1, y - 1)
+    };
+    *index = (*index + 6) % 8; // Select next search direction. Add 6, so we look just above the last pixel
+
+    for (uint8_t i = *index; i < *index + 8;) { // Check 8 pixels around
+        if ((bool)image->data[*pos + contourArray[i % 8]] == whitePixels) {
+            *pos += contourArray[i % 8];
+            *index = i % 8;
+            break;
+        }
+        if (connected == CONNECTED_8)
+            i++;
+        else if (connected == CONNECTED_4)
+            i += 2; // Skip all corners
+        else { // When using 6-connected, I use the definition here: https://en.wikipedia.org/wiki/Pixel_connectivity#6-connected
+            if (i % 8 != 2 && i % 8 != 6)
+                i++;
+            else
+                i += 2; // Skip upper right and lower left corners
+        }
+    }
+}
+
+bool contoursSearch(const Mat *image, Mat *out, Connected connected, bool whitePixels) {
+    assert(image->channels() == 1); // Image has to be one channel only
+    cvtColor(*image, *out, COLOR_GRAY2BGR); // Convert into color image
+
+    const size_t total = out->total();
+    const size_t MAX_RAND = total;
+    const Size size = out->size();
+    const int width = size.width;
+    const int height = size.height;
+    const int channels = out->channels();
+
+    int pos = -1;
+    for (size_t y = 0; y < height; y++) {
+        for (size_t x = 0; x < width; x++) {
+            size_t index = x + y * width;
+            if ((bool)image->data[index] == whitePixels) {
+                pos = index;
+                goto contourFound;
+            }
+        }
+    }
+    if (pos == -1) {
+        printf("No contour detected!\n");
+        return false; // TODO: Replace with NULL
+    }
+
+contourFound:
+    size_t count = 0;
+    int newpos = pos;
+    uint8_t draw_type = 0;
+
+    while (newpos >= 0L && newpos < total) {
+        // Draw contour
+        out->data[newpos * channels + 0] = 0; // Blue
+        out->data[newpos * channels + 1] = 0; // Green
+        out->data[newpos * channels + 2] = 255; // Red
+
+#if 1
+        checkNeighbors(image, &newpos, &draw_type, width, connected, whitePixels);
+#else
+        draw_type = (draw_type + 6) % 8; // Select next search direction
+
+        switch (draw_type) {
+        case 0:
+            if ((bool)image->data[newpos + 1] == whitePixels) {
+                newpos += 1;
+                draw_type = 0;
+                break;
+            }
+            // Intentional fallthrough
+        case 1:
+            if ((bool)image->data[newpos + width + 1] == whitePixels) {
+                newpos += width + 1;
+                draw_type = 1;
+                break;
+            }
+            // Intentional fallthrough
+        case 2:
+            if ((bool)image->data[newpos + width] == whitePixels) {
+                newpos += width;
+                draw_type = 2;
+                break;
+            }
+            // Intentional fallthrough
+        case 3:
+            if ((bool)image->data[newpos + width - 1] == whitePixels) {
+                newpos += width - 1;
+                draw_type = 3;
+                break;
+            }
+            // Intentional fallthrough
+        case 4:
+            if ((bool)image->data[newpos - 1] == whitePixels) {
+                newpos -= 1;
+                draw_type = 4;
+                break;
+            }
+            // Intentional fallthrough
+        case 5:
+            if ((bool)image->data[newpos - width - 1] == whitePixels) {
+                newpos -= width + 1;
+                draw_type = 5;
+                break;
+            }
+            // Intentional fallthrough
+        case 6:
+            if ((bool)image->data[newpos - width] == whitePixels) {
+                newpos -= width;
+                draw_type = 6;
+                break;
+            }
+            // Intentional fallthrough
+        case 7:
+            if ((bool)image->data[newpos - width + 1] == whitePixels) {
+                newpos -= width - 1;
+                draw_type = 7;
+                break;
+            }
+        case 8:
+            if ((bool)image->data[newpos + 1] == whitePixels) {
+                newpos += 1;
+                draw_type = 0;
+                break;
+            }
+            // Intentional fallthrough
+        case 9:
+            if ((bool)image->data[newpos + width + 1] == whitePixels) {
+                newpos += width + 1;
+                draw_type = 1;
+                break;
+            }
+            // Intentional fallthrough
+        case 10:
+            if ((bool)image->data[newpos + width] == whitePixels) {
+                newpos += width;
+                draw_type = 2;
+                break;
+            }
+            // Intentional fallthrough
+        case 11:
+            if ((bool)image->data[newpos + width - 1] == whitePixels) {
+                newpos += width - 1;
+                draw_type = 3;
+                break;
+            }
+            // Intentional fallthrough
+        case 12:
+            if ((bool)image->data[newpos - 1] == whitePixels) {
+                newpos -= 1;
+                draw_type = 4;
+                break;
+            }
+            // Intentional fallthrough
+        case 13:
+            if ((bool)image->data[newpos - width - 1] == whitePixels) {
+                newpos -= width + 1;
+                draw_type = 5;
+                break;
+            }
+            // Intentional fallthrough
+        case 14:
+            if ((bool)image->data[newpos - width] == whitePixels) {
+                newpos -= width;
+                draw_type = 6;
+                break;
+            }
+        }
+#endif
+        if (newpos == pos) { // If we are back at the beginning, we declare success
+            //printf("Count: %lu\n", count);
+            return true;
+        }
+        if (++count >= MAX_RAND) { // Abort if the contour is too complex
+            printf("Contour is too complex!\n");
+            break;
+        }
+    }
+    printf("Count: %lu\n", count);
+    return false;
+}
