@@ -1,6 +1,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
+#include "contours.h"
 #include "euler.h"
 #include "filter.h"
 #include "histogram.h"
@@ -202,20 +203,25 @@ restart:
             const float hypotenuse = sqrtf(2 * sideLength * sideLength); // Calculate hypotenuse, assuming that it is square
             //printf("Area: %f %f %f\n", moments.area, sideLength, hypotenuse);
             image = drawMoments(&image, &moments, hypotenuse / 9.0f, 0); // Draw center of mass on image
-#if 0
+#if 0 // Use Laplacian filter with lowpass filter to draw the contour
             static LinearFilter lowpassLaplacianFilter = LaplacianFilter() + 9 * LowpassFilter();
             Mat contour = lowpassLaplacianFilter.apply(&segments[i]); // Calculate contour
-#else
+#elif 0 // Use Laplacian filter to draw the contour
             static LaplacianFilter laplacianFilter;
             Mat contour = laplacianFilter.apply(&segments[i]); // Calculate contour
+#else // Use contour search method
+            Mat contour;
+            if (contoursSearch(&segments[i], &contour, CONNECTED_8, true)) // As there is only one segment it is faster to use the manual approuch
 #endif
-            //imshow("LaplacianFilter", contour);
+            {
+                //imshow("LaplacianFilter", contour);
 
-            for (size_t i = 0; i < contour.total(); i++) {
-                if (contour.data[i]) {
-                    image.data[i * image.channels() + 0] = 0;
-                    image.data[i * image.channels() + 1] = 0;
-                    image.data[i * image.channels() + 2] = 255; // Draw red contour
+                for (size_t i = 0; i < contour.total(); i++) {
+                    if (contour.data[i]) {
+                        image.data[i * image.channels() + 0] = 0;
+                        image.data[i * image.channels() + 1] = 0;
+                        image.data[i * image.channels() + 2] = 255; // Draw red contour
+                    }
                 }
             }
         } /*else if (DEBUG)
