@@ -43,11 +43,11 @@ int main(int argc, char *argv[]) {
     int windowSize = 3;
     int percentile = 20;
 
-    int neightborSize = 25;
+    int neighborSize = 25;
 
     int objectMin = 1600;
     int objectMax = 1750;
-#elif 1 // Red folder
+#elif 0 // Red folder
     int iLowH = 170;
     int iHighH = 10;
 
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     int windowSize = 3;
     int percentile = 20;
 
-    int neightborSize = 25;
+    int neighborSize = 25;
 
     int objectMin = 1600;
     int objectMax = 2000;
@@ -71,10 +71,10 @@ int main(int argc, char *argv[]) {
     int iLowH = 90;
     int iHighH = 130;
 
-    int iLowS = 120;
+    int iLowS = 55;
     int iHighS = 255;
 
-    int iLowV = 110;
+    int iLowV = 30;
     int iHighV = 255;
 
     int size1 = 1;
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     int windowSize = 3;
     int percentile = 20;
 
-    int neightborSize = 25;
+    int neighborSize = 25;
 
     int objectMin = 1600;
     int objectMax = 1950;
@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
         cvCreateTrackbar("Window size", controlWindow, &windowSize, 10, valueChangedCallBack);
         cvCreateTrackbar("Percentile", controlWindow, &percentile, 100, valueChangedCallBack);
 
-        cvCreateTrackbar("Neightbor size", controlWindow, &neightborSize, 50, valueChangedCallBack);
+        cvCreateTrackbar("Neighbor size", controlWindow, &neighborSize, 50, valueChangedCallBack);
 
         cvCreateTrackbar("Object min", controlWindow, &objectMin, 2000, valueChangedCallBack);
         cvCreateTrackbar("Object max", controlWindow, &objectMax, 2000, valueChangedCallBack);
@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
 restart:
     if (DEBUG && valueChanged) {
         valueChanged = false;
-        printf("HSV: %u %u\t%u %u\t%u %u\t\tSize: %d %d\tFractile filter: %d %d\tNeightbor size: %d \tObject: %d %d\n", iLowH, iHighH, iLowS, iHighS, iLowV, iHighV, size1, size2, windowSize, percentile, neightborSize, objectMin, objectMax);
+        printf("HSV: %u %u\t%u %u\t%u %u\t\tSize: %d %d\tFractile filter: %d %d\tNeighbor size: %d \tObject: %d %d\n", iLowH, iHighH, iLowS, iHighS, iLowV, iHighV, size1, size2, windowSize, percentile, neighborSize, objectMin, objectMax);
     }
 
     Mat image;
@@ -190,7 +190,7 @@ restart:
 
     // Create a image for each segment
     uint8_t nSegments;
-    Mat *segments = getSegments(&morphologicalFilter, &nSegments, neightborSize, true);
+    Mat *segments = getSegments(&morphologicalFilter, &nSegments, neighborSize, true);
 
     // Draw red contour if object is found
     for (uint8_t i = 0; i < nSegments; i++) {
