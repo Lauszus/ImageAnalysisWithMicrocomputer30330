@@ -21,10 +21,13 @@ static void checkNeighbors(const Mat *image, int *pos, uint8_t *index, const int
     *index = (*index + 6) % 8; // Select next search direction. Add 6, so we look just above the last pixel
 
     for (uint8_t i = *index; i < *index + 8;) { // Check 8 pixels around
-        if ((bool)image->data[*pos + contourArray[i % 8]] == whitePixels) {
-            *pos += contourArray[i % 8];
-            *index = i % 8;
-            break;
+        int32_t subIndex = *pos + contourArray[i % 8];
+        if (subIndex >= 0 && subIndex < image->total()) {
+            if ((bool)image->data[subIndex] == whitePixels) {
+                *pos = subIndex;
+                *index = i % 8;
+                return;
+            }
         }
         if (connected == CONNECTED_8)
             i++;
@@ -41,14 +44,15 @@ static void checkNeighbors(const Mat *image, int *pos, uint8_t *index, const int
 
 bool contoursSearch(const Mat *image, Mat *out, Connected connected, bool whitePixels) {
     assert(image->channels() == 1); // Image has to be one channel only
-    cvtColor(*image, *out, COLOR_GRAY2BGR); // Convert into color image
+
+    *out = Mat(image->size(), image->type());
+    memset(out->data, 0, out->total());
 
     const size_t total = out->total();
     const size_t MAX_RAND = total;
     const Size size = out->size();
     const int width = size.width;
     const int height = size.height;
-    const int channels = out->channels();
 
     int pos = -1;
     for (size_t y = 0; y < height; y++) {
@@ -62,7 +66,7 @@ bool contoursSearch(const Mat *image, Mat *out, Connected connected, bool whiteP
     }
     if (pos == -1) {
         printf("No contour detected!\n");
-        return false; // TODO: Replace with NULL
+        return false;
     }
 
 contourFound:
@@ -70,12 +74,8 @@ contourFound:
     int newpos = pos;
     uint8_t draw_type = 0;
 
-    while (newpos >= 0L && newpos < total) {
-        // Draw contour
-        out->data[newpos * channels + 0] = 0; // Blue
-        out->data[newpos * channels + 1] = 0; // Green
-        out->data[newpos * channels + 2] = 255; // Red
-
+    while (1) {
+        out->data[newpos] = 255; // Draw contour
 #if 1
         checkNeighbors(image, &newpos, &draw_type, width, connected, whitePixels);
 #else
@@ -190,8 +190,7 @@ contourFound:
         if (newpos == pos) { // If we are back at the beginning, we declare success
             //printf("Count: %lu\n", count);
             return true;
-        }
-        if (++count >= MAX_RAND) { // Abort if the contour is too complex
+        } else if (++count >= MAX_RAND) { // Abort if the contour is too complex
             printf("Contour is too complex!\n");
             break;
         }
