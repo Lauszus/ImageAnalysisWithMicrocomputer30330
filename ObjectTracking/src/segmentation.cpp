@@ -15,6 +15,7 @@ static uint8_t checkNeighbors(const Mat *image, const Mat *segments, const size_
 
     uint8_t id = 0;
 
+    // Check all neighbors using 8-connected
     for (int8_t i = -neighborSize; i <= neighborSize; i++) {
         for (int8_t j = -neighborSize; j <= neighborSize; j++) {
             int32_t subIndex = index + i * width + j;
