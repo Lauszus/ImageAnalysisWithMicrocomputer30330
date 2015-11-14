@@ -120,6 +120,8 @@ int main(int argc, char *argv[]) {
         printf("Could not open Webcam\n");
         return 1;
     }
+    capture.set(CV_CAP_PROP_FRAME_WIDTH, 320);
+    capture.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
 
 restart:
     if (DEBUG && valueChanged) {
@@ -133,7 +135,6 @@ restart:
         return 1;
     }
     flip(image, image, 1); // Flip image so it acts like a mirror
-    resize(image, image, image.size() / 3); // Resize image
 
 #if 0
     printf("image size: %lu, width: %d, height: %d, %lu, color format: %d\n",
