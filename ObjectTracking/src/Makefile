@@ -2,6 +2,11 @@ CC=g++
 CFLAGS+=`pkg-config --cflags opencv`
 LDFLAGS+=`pkg-config --libs opencv`
 
+# Link UV4L libraries on ARM
+ifneq ($(filter arm%,$(shell uname -m)),)
+	LDFLAGS+=-L/usr/lib/uv4l/uv4lext/armv6l -luv4lext -Wl,-rpath,'/usr/lib/uv4l/uv4lext/armv6l'
+endif
+
 # Change this to the name of your main file
 PROG=main
 
