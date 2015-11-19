@@ -251,7 +251,7 @@ int main(int argc, char *argv[]) {
 
         // Apply morphological closing and opening
         Mat morphologicalFilter = fractileFilterImg.clone();
-
+#if !(__arm__) // Skip morphological filter on ARM, as it runs very very slow!
         // Morphological closing (fill small holes in the foreground)
         dilate(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size2, size2)));
         erode(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size2, size2)));
@@ -259,12 +259,13 @@ int main(int argc, char *argv[]) {
         // Morphological opening (remove small objects from the foreground)
         erode(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size1, size1)));
         dilate(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size1, size1)));
+        //imshow("Morphological", morphologicalFilter);
+#endif
 
 #if PRINT_TIMING
         printf("Morph = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
         timer = (double)getTickCount();
 #endif
-        //imshow("Morphological", morphologicalFilter);
 
         // Create a image for each segment
         uint8_t nSegments;
