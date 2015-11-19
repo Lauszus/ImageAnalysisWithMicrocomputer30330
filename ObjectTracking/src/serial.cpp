@@ -1,5 +1,20 @@
 // Based on: http://stackoverflow.com/a/6947758
 
+/* Example of opening:
+ *     const char *portName = "/dev/tty.usbserial-A400hvwP";
+ *         if (serialOpen(portName, B115200)) {
+ *             printf("Error opening serial port\n");
+ *             serialClose(portName);
+ *             return 1;
+ *         } else
+ *             printf("Serial port opened successful\n");
+ */
+
+/* Example of closing:
+ *     if (serialClose(portName))
+ *         printf("Error closing serial port\n");
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
