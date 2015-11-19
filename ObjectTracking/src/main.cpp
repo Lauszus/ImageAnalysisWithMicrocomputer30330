@@ -187,19 +187,19 @@ int main(int argc, char *argv[]) {
         minY = fractileFilterImg.size().height - 1;
         maxX = maxY = 0;
         for (size_t y = 0; y < fractileFilterImg.size().height; y++) {
-                for (size_t x = 0; x < fractileFilterImg.size().width; x++) {
-                    if (fractileFilterImg.data[index]) { // Look for all white pixels
-                        if (x < minX)
-                            minX = x;
-                        else if (x > maxX)
-                            maxX = x;
-                        if (y < minY)
-                            minY = y;
-                        else if (y > maxY)
-                            maxY = y;
-                    }
-                    index += fractileFilterImg.channels();
+            for (size_t x = 0; x < fractileFilterImg.size().width; x++) {
+                if (fractileFilterImg.data[index]) { // Look for all white pixels
+                    if (x < minX)
+                        minX = x;
+                    else if (x > maxX)
+                        maxX = x;
+                    if (y < minY)
+                        minY = y;
+                    else if (y > maxY)
+                        maxY = y;
                 }
+                index += fractileFilterImg.channels();
+            }
         }
         //printf("%d,%d,%d,%d\n", minX, maxX, minY, maxY);
 
