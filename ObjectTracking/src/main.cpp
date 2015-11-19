@@ -8,6 +8,8 @@
 #include "moments.h"
 #include "segmentation.h"
 
+#define PRINT_TIMING 0
+
 using namespace std;
 using namespace cv;
 
@@ -133,12 +135,20 @@ int main(int argc, char *argv[]) {
             printf("HSV: %u %u\t%u %u\t%u %u\t\tSize: %d %d\tFractile filter: %d %d\tNeighbor size: %d\tObject: %d %d\tPadding: %d\n", iLowH, iHighH, iLowS, iHighS, iLowV, iHighV, size1, size2, windowSize, percentile, neighborSize, objectMin, objectMax, cropPadding);
         }
 
+#if PRINT_TIMING
+        double timer = (double)getTickCount();
+        double startTimer = timer;
+#endif
         Mat image;
         if (!capture.read(image)) {
             printf("Could not read Webcam\n");
             return 1;
         }
         flip(image, image, 1); // Flip image so it acts like a mirror
+#if PRINT_TIMING
+        printf("Capture = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
+        timer = (double)getTickCount();
+#endif
 
     #if 0
         printf("image size: %lu, width: %d, height: %d, %lu, color format: %d\n",
@@ -148,6 +158,10 @@ int main(int argc, char *argv[]) {
 
         Mat image_hsv;
         cvtColor(image, image_hsv, COLOR_BGR2HSV); // Convert image to HSV
+#if PRINT_TIMING
+        printf("HSV = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
+        timer = (double)getTickCount();
+#endif
 
         Mat imgThresholded(image.size(), CV_8UC1);
         Scalar low = Scalar(iLowH, iLowS, iLowV);
@@ -172,12 +186,18 @@ int main(int argc, char *argv[]) {
     #else
         inRange(image_hsv, low, high, imgThresholded);
     #endif
+#if PRINT_TIMING
+        printf("Threshold = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
+        timer = (double)getTickCount();
+#endif
         //imshow("Thresholded image", imgThresholded);
 
         // Apply fractile filter to remove salt- and pepper noise
-        //double timer = (double)getTickCount();
         Mat fractileFilterImg = fractileFilter(&imgThresholded, windowSize, percentile, true);
-        //printf("ms = %f\n", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
+#if PRINT_TIMING
+        printf("Fractile filter = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
+        timer = (double)getTickCount();
+#endif
         //imshow("Fractile filter", fractileFilterImg);
 
         // Crop image, so we are only looking at the actual data
@@ -222,7 +242,12 @@ int main(int argc, char *argv[]) {
         if (minY + height >= fractileFilterImg.size().height)
             height = fractileFilterImg.size().height - 1 - minY;
 
-        fractileFilterImg = Mat(fractileFilterImg, Rect(minX, minY, width, height)).clone();
+        fractileFilterImg = Mat(fractileFilterImg, Rect(minX, minY, width, height)).clone(); // Do the actual cropping
+
+#if PRINT_TIMING
+        printf("Crop = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
+        timer = (double)getTickCount();
+#endif
 
         // Apply morphological closing and opening
         Mat morphologicalFilter = fractileFilterImg.clone();
@@ -235,11 +260,19 @@ int main(int argc, char *argv[]) {
         erode(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size1, size1)));
         dilate(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size1, size1)));
 
+#if PRINT_TIMING
+        printf("Morph = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
+        timer = (double)getTickCount();
+#endif
         //imshow("Morphological", morphologicalFilter);
 
         // Create a image for each segment
         uint8_t nSegments;
         Mat *segments = getSegments(&morphologicalFilter, &nSegments, neighborSize, true);
+#if PRINT_TIMING
+        printf("Segments = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
+        timer = (double)getTickCount();
+#endif
 
         // Draw red contour if object is found
         for (uint8_t i = 0; i < nSegments; i++) {
@@ -283,6 +316,9 @@ int main(int argc, char *argv[]) {
             } /*else if (DEBUG)
                 printf("Segment: %u\tPhi: %.4f,%.4f\tEuler number: %d\tSegments: %u\n", i, moments.phi1, moments.phi2, eulerNumber, nSegments);*/
         }
+#if PRINT_TIMING
+        printf("Contour = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
+#endif
 
         if (DEBUG) {
             // Create windows
@@ -318,6 +354,9 @@ int main(int argc, char *argv[]) {
         imshow("Histogram", hist);
     #endif
 
+#if PRINT_TIMING
+        printf("Total = %f ms\n", ((double)getTickCount() - startTimer) / getTickFrequency() * 1000.0);
+#endif
     }
 
     return 0;
