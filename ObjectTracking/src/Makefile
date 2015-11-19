@@ -20,7 +20,7 @@ $(PROG): $(OBJS)
 	$(CC) -o bin/$(PROG) $(OBJS) $(LDFLAGS)
 
 %.o: %.cpp
-	$(CC) -c $(CFLAGS) $<
+	$(CC) -O3 -c $(CFLAGS) $<
 
 all: $(PROG)
 
