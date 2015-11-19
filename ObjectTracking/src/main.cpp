@@ -47,6 +47,8 @@ int main(int argc, char *argv[]) {
 
     int objectMin = 1600;
     int objectMax = 1750;
+
+    int cropPadding = 30;
 #elif 0 // Red folder
     int iLowH = 170;
     int iHighH = 10;
@@ -113,6 +115,8 @@ int main(int argc, char *argv[]) {
 
         cvCreateTrackbar("Object min", controlWindow, &objectMin, 2000, valueChangedCallBack);
         cvCreateTrackbar("Object max", controlWindow, &objectMax, 2000, valueChangedCallBack);
+
+        cvCreateTrackbar("Crop padding", controlWindow, &cropPadding, 100, valueChangedCallBack);
     }
 
     VideoCapture capture(0); // Capture video from webcam
@@ -126,7 +130,7 @@ int main(int argc, char *argv[]) {
 restart:
     if (DEBUG && valueChanged) {
         valueChanged = false;
-        printf("HSV: %u %u\t%u %u\t%u %u\t\tSize: %d %d\tFractile filter: %d %d\tNeighbor size: %d \tObject: %d %d\n", iLowH, iHighH, iLowS, iHighS, iLowV, iHighV, size1, size2, windowSize, percentile, neighborSize, objectMin, objectMax);
+        printf("HSV: %u %u\t%u %u\t%u %u\t\tSize: %d %d\tFractile filter: %d %d\tNeighbor size: %d\tObject: %d %d\tPadding: %d\n", iLowH, iHighH, iLowS, iHighS, iLowV, iHighV, size1, size2, windowSize, percentile, neighborSize, objectMin, objectMax, cropPadding);
     }
 
     Mat image;
@@ -176,6 +180,50 @@ restart:
     //printf("ms = %f\n", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
     //imshow("Fractile filter", fractileFilterImg);
 
+    // Crop image, so we are only looking at the actual data
+    index = 0;
+    int minX, maxX, minY, maxY;
+    minX = fractileFilterImg.size().width - 1;
+    minY = fractileFilterImg.size().height - 1;
+    maxX = maxY = 0;
+    for (size_t y = 0; y < fractileFilterImg.size().height; y++) {
+            for (size_t x = 0; x < fractileFilterImg.size().width; x++) {
+                if (fractileFilterImg.data[index]) { // Look for all white pixels
+                    if (x < minX)
+                        minX = x;
+                    else if (x > maxX)
+                        maxX = x;
+                    if (y < minY)
+                        minY = y;
+                    else if (y > maxY)
+                        maxY = y;
+                }
+                index += fractileFilterImg.channels();
+            }
+    }
+    //printf("%d,%d,%d,%d\n", minX, maxX, minY, maxY);
+
+    if (maxX == 0 || maxY == 0)
+        goto restart;
+
+    minX -= cropPadding;
+    minY -= cropPadding;
+    if (minX < 0)
+        minX = 0;
+    if (minY < 0)
+        minY = 0;
+
+    int width = maxX - minX;
+    int height = maxY - minY;
+    width += cropPadding;
+    height += cropPadding;
+    if (minX + width >= fractileFilterImg.size().width)
+        width = fractileFilterImg.size().width - 1 - minX;
+    if (minY + height >= fractileFilterImg.size().height)
+        height = fractileFilterImg.size().height - 1 - minY;
+
+    fractileFilterImg = Mat(fractileFilterImg, Rect(minX, minY, width, height)).clone();
+
     // Apply morphological closing and opening
     Mat morphologicalFilter = fractileFilterImg.clone();
 
@@ -203,7 +251,9 @@ restart:
             const float sideLength = sqrtf(moments.area); // Calculate side length from area
             const float hypotenuse = sqrtf(2 * sideLength * sideLength); // Calculate hypotenuse, assuming that it is square
             //printf("Area: %f %f %f\n", moments.area, sideLength, hypotenuse);
-            image = drawMoments(&image, &moments, hypotenuse / 9.0f, 0); // Draw center of mass on image
+            moments.centerX += minX; // Convert to x,y coordinates in original image
+            moments.centerY += minY;
+            image = drawMoments(&image, &moments, hypotenuse / 9.0f, 0); // Draw center of mass on original image
 #if 0 // Use Laplacian filter with lowpass filter to draw the contour
             static LinearFilter lowpassLaplacianFilter = LaplacianFilter() + 9 * LowpassFilter();
             Mat contour = lowpassLaplacianFilter.apply(&segments[i]); // Calculate contour
@@ -212,16 +262,21 @@ restart:
             Mat contour = laplacianFilter.apply(&segments[i]); // Calculate contour
 #else // Use contour search method
             Mat contour;
-            if (contoursSearch(&segments[i], &contour, CONNECTED_8, true)) // As there is only one segment it is faster to use the manual approuch
+            if (contoursSearch(&segments[i], &contour, CONNECTED_8, true)) // As there is only one segment it is faster to use the manual approach
 #endif
             {
                 //imshow("LaplacianFilter", contour);
 
-                for (size_t i = 0; i < contour.total(); i++) {
-                    if (contour.data[i]) {
-                        image.data[i * image.channels() + 0] = 0;
-                        image.data[i * image.channels() + 1] = 0;
-                        image.data[i * image.channels() + 2] = 255; // Draw red contour
+                index = 0;
+                for (size_t y = 0; y < contour.size().height; y++) {
+                    for (size_t x = 0; x < contour.size().width; x++) {
+                        if (contour.data[index]) {
+                            size_t subIndex = ((x + minX) + (y + minY) * image.size().width) * image.channels(); // Convert to x,y coordinates in original image
+                            image.data[subIndex + 0] = 0;
+                            image.data[subIndex + 1] = 0;
+                            image.data[subIndex + 2] = 255; // Draw red contour
+                        }
+                        index++;
                     }
                 }
             }
@@ -230,25 +285,28 @@ restart:
     }
 
     if (DEBUG) {
-        // Create window
-        Mat window(2 * image.size().height, 2 * image.size().width, CV_8UC3);
-        Mat topLeft(window, Rect(0, 0, image.size().width, image.size().height));
-        Mat botLeft(window, Rect(0, imgThresholded.size().height, imgThresholded.size().width, imgThresholded.size().height));
-        Mat topRight(window, Rect(image.size().width, 0, image.size().width, image.size().height));
-        Mat botRight(window, Rect(image.size().width, image.size().height, image.size().width, image.size().height));
+        // Create windows
+        Mat window1(2 * image.size().height, image.size().width, CV_8UC3);
+        Mat top1(window1, Rect(0, 0, image.size().width, image.size().height));
+        Mat bot1(window1, Rect(0, image.size().height, imgThresholded.size().width, imgThresholded.size().height));
 
-        // Convert to color image, so it actually shows up
+        Mat window2(2 * fractileFilterImg.size().height, fractileFilterImg.size().width, CV_8UC3);
+        Mat top2(window2, Rect(0, 0, fractileFilterImg.size().width, fractileFilterImg.size().height));
+        Mat bot2(window2, Rect(0, fractileFilterImg.size().height, morphologicalFilter.size().width, morphologicalFilter.size().height));
+
+        // Convert to color images, so it actually shows up
         cvtColor(imgThresholded, imgThresholded, COLOR_GRAY2BGR);
         cvtColor(fractileFilterImg, fractileFilterImg, COLOR_GRAY2BGR);
         cvtColor(morphologicalFilter, morphologicalFilter, COLOR_GRAY2BGR);
 
-        // Copy images to window
-        image.copyTo(topLeft);
-        imgThresholded.copyTo(botLeft);
-        fractileFilterImg.copyTo(topRight);
-        morphologicalFilter.copyTo(botRight);
+        // Copy images to windows
+        image.copyTo(top1);
+        imgThresholded.copyTo(bot1);
+        fractileFilterImg.copyTo(top2);
+        morphologicalFilter.copyTo(bot2);
 
-        imshow("Window", window);
+        imshow("Window1", window1);
+        imshow("Window2", window2);
     } else {
         resize(image, image, image.size() * 2); // Resize image
         imshow("Window", image);
