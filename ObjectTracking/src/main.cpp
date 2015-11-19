@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
     int iHighV = 255;
 
     int size1 = 3;
-    int size2 = 30;
+    int size2 = 20;
 
     int windowSize = 3;
     int percentile = 20;
