@@ -88,97 +88,98 @@ contourFound:
                 draw_type = 0;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 1:
             if ((bool)image->data[newpos + width + 1] == whitePixels) {
                 newpos += width + 1;
                 draw_type = 1;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 2:
             if ((bool)image->data[newpos + width] == whitePixels) {
                 newpos += width;
                 draw_type = 2;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 3:
             if ((bool)image->data[newpos + width - 1] == whitePixels) {
                 newpos += width - 1;
                 draw_type = 3;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 4:
             if ((bool)image->data[newpos - 1] == whitePixels) {
                 newpos -= 1;
                 draw_type = 4;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 5:
             if ((bool)image->data[newpos - width - 1] == whitePixels) {
                 newpos -= width + 1;
                 draw_type = 5;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 6:
             if ((bool)image->data[newpos - width] == whitePixels) {
                 newpos -= width;
                 draw_type = 6;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 7:
             if ((bool)image->data[newpos - width + 1] == whitePixels) {
                 newpos -= width - 1;
                 draw_type = 7;
                 break;
             }
+            // Intentional fall through
         case 8:
             if ((bool)image->data[newpos + 1] == whitePixels) {
                 newpos += 1;
                 draw_type = 0;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 9:
             if ((bool)image->data[newpos + width + 1] == whitePixels) {
                 newpos += width + 1;
                 draw_type = 1;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 10:
             if ((bool)image->data[newpos + width] == whitePixels) {
                 newpos += width;
                 draw_type = 2;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 11:
             if ((bool)image->data[newpos + width - 1] == whitePixels) {
                 newpos += width - 1;
                 draw_type = 3;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 12:
             if ((bool)image->data[newpos - 1] == whitePixels) {
                 newpos -= 1;
                 draw_type = 4;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 13:
             if ((bool)image->data[newpos - width - 1] == whitePixels) {
                 newpos -= width + 1;
                 draw_type = 5;
                 break;
             }
-            // Intentional fallthrough
+            // Intentional fall through
         case 14:
             if ((bool)image->data[newpos - width] == whitePixels) {
                 newpos -= width;
