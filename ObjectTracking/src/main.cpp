@@ -39,8 +39,8 @@ int main(int argc, char *argv[]) {
     int iLowV = 10;
     int iHighV = 255;
 
-    int size1 = 3;
-    int size2 = 20;
+    int size1 = 20;
+    int size2 = 3;
 
     int windowSize = 3;
     int percentile = 20;
@@ -61,8 +61,8 @@ int main(int argc, char *argv[]) {
     int iLowV = 135;
     int iHighV = 255;
 
-    int size1 = 3;
-    int size2 = 30;
+    int size1 = 30;
+    int size2 = 3;
 
     int windowSize = 3;
     int percentile = 20;
@@ -81,8 +81,8 @@ int main(int argc, char *argv[]) {
     int iLowV = 30;
     int iHighV = 255;
 
-    int size1 = 1;
-    int size2 = 12;
+    int size1 = 12;
+    int size2 = 1;
 
     int windowSize = 3;
     int percentile = 20;
@@ -253,12 +253,12 @@ int main(int argc, char *argv[]) {
         Mat morphologicalFilter = fractileFilterImg.clone();
 #if !(__arm__) // Skip morphological filter on ARM, as it runs very very slow!
         // Morphological closing (fill small holes in the foreground)
-        dilate(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size2, size2)));
-        erode(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size2, size2)));
+        dilate(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size1, size1)));
+        erode(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size1, size1)));
 
         // Morphological opening (remove small objects from the foreground)
-        erode(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size1, size1)));
-        dilate(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size1, size1)));
+        erode(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size2, size2)));
+        dilate(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size2, size2)));
         //imshow("Morphological", morphologicalFilter);
 #endif
 
