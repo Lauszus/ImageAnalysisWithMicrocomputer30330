@@ -500,8 +500,16 @@ int main(int argc, char *argv[]) {
         sprintf(buf, "img/image%u.jpg", counter++);
         imwrite(buf, image);
 #endif
-        static const uint8_t nZombies = 4; // Track up to this number of zombies
-        static int8_t zombieCounter[nZombies];
+
+        static uint8_t rounds = 0;
+        static uint8_t nZombies; // Track up to this number of zombies
+        if (rounds < 10) {
+            rounds++;
+            nZombies = 2; // Only track two in the beginning because of the text
+        } else
+            nZombies = 4;
+        static int8_t zombieCounter[4];
+
         for (uint8_t i = 0; i < nZombies; i++) {
             if (moments[i].centerY > borderWidth && moments[i].centerY < image.size().height - borderWidth) { // Ignore plants in the border
                 if ((solenoidDone && (((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 > waitTime))/* || (moments[i].centerX >= lastCenterX + ignoreWidth)*/) { // If it has been more than x ms since last zombie was killed or the center x position is above
