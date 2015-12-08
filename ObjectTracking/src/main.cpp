@@ -480,9 +480,9 @@ int main(int argc, char *argv[]) {
 
         static double zombieDeathTimer = 0;
         static const uint16_t waitTime = 250; // Wait x ms after solenoid has gone all the way up down, as the zombie need to vanish
-        static bool timerReset;
-        if (solenoidDone && timerReset) {
-            timerReset = false;
+        static bool waitForSolenoidDone = false;
+        if (solenoidDone && waitForSolenoidDone) {
+            waitForSolenoidDone = false;
             zombieDeathTimer = (double)getTickCount(); // Set timer value
         }
 
@@ -504,7 +504,7 @@ int main(int argc, char *argv[]) {
         static int8_t zombieCounter[nZombies];
         for (uint8_t i = 0; i < nZombies; i++) {
             if (moments[i].centerY > borderWidth && moments[i].centerY < image.size().height - borderWidth) { // Ignore plants in the border
-                if (solenoidDone && (((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 > waitTime)/* || (moments[i].centerX >= lastCenterX + ignoreWidth)*/) { // If it has been more than x ms since last zombie was killed or the center x position is above
+                if ((solenoidDone && (((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 > waitTime))/* || (moments[i].centerX >= lastCenterX + ignoreWidth)*/) { // If it has been more than x ms since last zombie was killed or the center x position is above
                     if (moments[i].centerY > image.size().height / 2) {
                         zombieCounter[i]++;
                         /*if (zombieCounter[i] < 0) // We want x times in a row, so reset counter if it is negative
@@ -524,7 +524,7 @@ int main(int argc, char *argv[]) {
             if (abs(zombieCounter[0]) >= 2) { // Check how many times in a row we have seen that zombie
                 lastCenterX = moments[0].centerX; // Store center x value
                 solenoidDone = false;
-                timerReset = true;
+                waitForSolenoidDone = true;
                 zombieDeaths++;
                 if (zombieCounter[0] > 0) {
                     printf("Right\n");
