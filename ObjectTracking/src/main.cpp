@@ -487,10 +487,10 @@ int main(int argc, char *argv[]) {
         }
 
         // Draw blue line indicating where it is actually looking, as the zombies need to vanish
-        static const float ignoreWidth = 5;
+        /*static const float ignoreWidth = 5;
         static float lastCenterX = -ignoreWidth;
         if (lastCenterX > 0 && (!solenoidDone || ((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 <= waitTime))
-            line(image, Point(lastCenterX + ignoreWidth, 0), Point(lastCenterX + ignoreWidth, image.size().height), Scalar(255, 0, 0));
+            line(image, Point(lastCenterX + ignoreWidth, 0), Point(lastCenterX + ignoreWidth, image.size().height), Scalar(255, 0, 0));*/
 
         imshow("Areas", image);
 
@@ -512,7 +512,7 @@ int main(int argc, char *argv[]) {
 
         for (uint8_t i = 0; i < nZombies; i++) {
             if (moments[i].centerY > borderWidth && moments[i].centerY < image.size().height - borderWidth) { // Ignore plants in the border
-                if ((solenoidDone && (((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 > waitTime))/* || (moments[i].centerX >= lastCenterX + ignoreWidth)*/) { // If it has been more than x ms since last zombie was killed or the center x position is above
+                if ((solenoidDone && (((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 > waitTime))) { // If it has been more than x ms since last zombie was killed or the center x position is above
                     if (moments[i].centerY > image.size().height / 2) {
                         zombieCounter[i]++;
                         /*if (zombieCounter[i] < 0) // We want x times in a row, so reset counter if it is negative
@@ -529,8 +529,8 @@ int main(int argc, char *argv[]) {
 
         uint8_t zombieDeaths = 0;
         for (uint8_t i = 0; i < nZombies; i++) {
-            if (abs(zombieCounter[0]) >= 2) { // Check how many times in a row we have seen that zombie
-                lastCenterX = moments[0].centerX; // Store center x value
+            if (abs(zombieCounter[0]) >= 1) { // Check how many times in a row we have seen that zombie
+                //lastCenterX = moments[0].centerX; // Store center x value
                 solenoidDone = false;
                 waitForSolenoidDone = true;
                 zombieDeaths++;
