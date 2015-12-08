@@ -10,10 +10,15 @@
 #include "filter.h"
 #include "histogram.h"
 #include "moments.h"
+#include "ringbuffer.h"
 #include "segmentation.h"
 
 #define PRINT_TIMING 0
 #define PRINT_FPS    0
+
+#define FPS_MS (1.0/0.020) // 50 FPS
+
+RingBuffer zombieBuffer;
 
 using namespace std;
 using namespace cv;
@@ -31,6 +36,53 @@ void valueChangedCallBack(int pos) {
 #if !(__arm__)
 #define digitalWrite(pin, val) (void(0)); // Just added so it compiles on non-arm platforms
 #endif
+
+enum Solenoid_e {
+    SOLENOID_READ,
+    SOLENOID_KILL,
+    SOLENOID_LIFT,
+};
+
+static bool solenoidDone;
+
+static void runSolenoidStateMachine(void) {
+    static Solenoid_e state = SOLENOID_READ;
+    static int val;
+    static double timer;
+
+    switch (state) {
+        case SOLENOID_READ:
+            if (((double)getTickCount() - timer) / getTickFrequency() * 1000.0 > 30) { // Wait 30 ms for solenoid to go up again
+                solenoidDone = true;
+                if (zombieBuffer.available()) {
+                    val = zombieBuffer.read();
+                    state = SOLENOID_KILL;
+                    solenoidDone = false;
+                }
+            }
+            break;
+        case SOLENOID_KILL:
+            if (val > 0) { // Right side
+                digitalWrite(rightSolenoidPin, LOW); // Kill zombie on the right side
+            } else { // Left side
+                digitalWrite(leftSolenoidPin, LOW); // Kill zombie on the left side
+            }
+            timer = (double)getTickCount();
+            state = SOLENOID_LIFT;
+            break;
+        case SOLENOID_LIFT:
+            if (((double)getTickCount() - timer) / getTickFrequency() * 1000.0 > 30) { // Wait 30 ms for solenoid to go all the way down
+                if (val > 0) { // Right side
+                    digitalWrite(rightSolenoidPin, HIGH);
+                } else { // Left side
+                    digitalWrite(leftSolenoidPin, HIGH);
+                }
+                timer = (double)getTickCount();
+                state = SOLENOID_READ;
+            }
+            break;
+    }
+}
 
 int main(int argc, char *argv[]) {
     /*for (int i = 0; i < argc; i++)
@@ -86,6 +138,9 @@ int main(int argc, char *argv[]) {
     int objectMax = 3200;
 
     int cropPadding = 30;
+
+    int areaMin = 50;
+    int areaMax = 100;
 #elif 0 // Red folder
     int iLowH = 170;
     int iHighH = 10;
@@ -154,6 +209,9 @@ int main(int argc, char *argv[]) {
         cvCreateTrackbar("Object max", controlWindow, &objectMax, 4000, valueChangedCallBack);
 
         cvCreateTrackbar("Crop padding", controlWindow, &cropPadding, 100, valueChangedCallBack);
+
+        cvCreateTrackbar("Area min", controlWindow, &areaMin, 200, valueChangedCallBack);
+        cvCreateTrackbar("Area max", controlWindow, &areaMax, 200, valueChangedCallBack);
     }
 
     VideoCapture capture(0); // Capture video from webcam
@@ -173,18 +231,19 @@ int main(int argc, char *argv[]) {
     pinMode(rightSolenoidPin, OUTPUT);
     digitalWrite(leftSolenoidPin, HIGH); // Input is inverted
     digitalWrite(rightSolenoidPin, HIGH);
+    solenoidDone = true;
 #endif
 
     static bool firstRun = true;
-    while (cvWaitKey(1) != 27) { // Wait 1ms to see if ESC is pressed
+    while (1) {
         if (DEBUG && valueChanged) {
             valueChanged = false;
-            printf("HSV: %u %u\t%u %u\t%u %u\t\tSize: %d %d\tFractile filter: %d %d\tNeighbor size: %d\tObject: %d %d\tPadding: %d\n", iLowH, iHighH, iLowS, iHighS, iLowV, iHighV, size1, size2, windowSize, percentile, neighborSize, objectMin, objectMax, cropPadding);
+            printf("HSV: %u %u\t%u %u\t%u %u\t\tSize: %d %d\tFractile filter: %d %d\tNeighbor size: %d\tObject: %d %d\tPadding: %d\tArea: %d %d\n", iLowH, iHighH, iLowS, iHighS, iLowV, iHighV, size1, size2, windowSize, percentile, neighborSize, objectMin, objectMax, cropPadding, areaMin, areaMax);
         }
 
-#if PRINT_TIMING || PRINT_FPS
-        double timer = (double)getTickCount();
-        double startTimer = timer;
+        double startTimer = (double)getTickCount();
+#if PRINT_TIMING
+        double timer = startTimer;
 #endif
         Mat image;
         if (!capture.read(image)) {
@@ -330,8 +389,8 @@ int main(int argc, char *argv[]) {
             moments_t momentsTmp = calculateMoments(&segments[i], true);
             int16_t eulerNumber = calculateEulerNumber(&segments[i], CONNECTED_8, true);
 
-            // Object detected if it is within the range of the invariant and Euler number is equal to 1
-            if (momentsTmp.phi1 > (float)objectMin * 1e-4f && momentsTmp.phi1 < (float)objectMax * 1e-4f && eulerNumber == 1) {
+            // Object detected if it is within the range of the invariant, has the right area and Euler number is equal to 1
+            if (momentsTmp.phi1 > (float)objectMin * 1e-4f && momentsTmp.phi1 < (float)objectMax * 1e-4f && momentsTmp.area > areaMin && momentsTmp.area < areaMax && eulerNumber == 1) {
                 const float sideLength = sqrtf(momentsTmp.area); // Calculate side length from area
                 const float hypotenuse = sqrtf(2 * sideLength * sideLength); // Calculate hypotenuse, assuming that it is square
                 //printf("Area: %f %f %f\n", moments.area, sideLength, hypotenuse);
@@ -406,90 +465,54 @@ int main(int argc, char *argv[]) {
         line(image, Point(0, borderWidth), Point(image.size().width, borderWidth), Scalar(255, 0, 0)); // Top border
         line(image, Point(0, image.size().height / 2), Point(image.size().width, image.size().height / 2), Scalar(255, 0, 0)); // Middle
         line(image, Point(0, image.size().height - borderWidth), Point(image.size().width, image.size().height - borderWidth), Scalar(255, 0, 0)); // Bottom border
-        imshow("Areas", image);
-#if 0
-        static double zombieTimer = 0;
-        if (!firstRun && ((double)getTickCount() - zombieTimer) / getTickFrequency() * 1000.0 > 500) { // Wait 100 ms after killing zombies
-            // Sort moments in ascending order according to the centerX position
-            // Inspired by: http://www.tenouk.com/cpluscodesnippet/sortarrayelementasc.html
-            for (uint8_t i = 1; i < objectsDetected; i++) {
-                for (uint8_t j = 0; j < objectsDetected - 1; j++) {
-                    if (moments[j].centerX > moments[j + 1].centerX) {
-                        float tempX = moments[j].centerX;
-                        float tempY = moments[j].centerY;
-                        moments[j].centerX = moments[j + 1].centerX;
-                        moments[j].centerY = moments[j + 1].centerY;
-                        moments[j + 1].centerX = tempX;
-                        moments[j + 1].centerY = tempY;
-                    }
-                }
-            }
-
-            // Go through all zombies from the bottom up with respect to the phone and kill them!
-            for (uint8_t i = 0; i < objectsDetected; i++) {
-                printf("Center (x,y): %.2f,%.2f\t%d\t", moments[i].centerX, moments[i].centerY, image.size().height);
-                if (moments[i].centerY > borderWidth && moments[i].centerY < image.size().height - borderWidth) { // Ignore plants in the border
-                    zombieTimer = (double)getTickCount(); // Set timer value
-                    if (moments[i].centerY > image.size().height / 2) { // Check which side it is on
-                        printf("Right\n");
-                        digitalWrite(leftSolenoidPin, HIGH);
-                        digitalWrite(rightSolenoidPin, LOW); // Kill zombie on the right side
-                        if (cvWaitKey(30) == 27) // Wait 30 ms for solenoid to go all the way down
-                            goto end; // Quit if ESC is pressed
-                        digitalWrite(rightSolenoidPin, HIGH);
-                    } else {
-                        printf("Left\n");
-                        digitalWrite(leftSolenoidPin, LOW); // Kill zombie on the left side
-                        digitalWrite(rightSolenoidPin, HIGH);
-                        if (cvWaitKey(30) == 27) // Wait 30 ms for solenoid to go all the way down
-                            goto end; // Quit if ESC is pressed
-                        digitalWrite(leftSolenoidPin, HIGH);
-                    }
-                    if (cvWaitKey(30) == 27) // Wait 30 ms for solenoid to go up again
-                        goto end; // Quit if ESC is pressed
-                }
-            }
-        }
-#else
-        static double zombieTimer = 0;
-        static bool zombieKilled = false;
-        /*if (zombieKilled && ((double)getTickCount() - zombieTimer) / getTickFrequency() * 1000.0 > 30) { // 30 ms since we last killed a zombie
-            zombieKilled = false;
-            digitalWrite(rightSolenoidPin, HIGH);
-            digitalWrite(leftSolenoidPin, HIGH);
-        }*/
 
         // Sort moments in ascending order according to the centerX position
         // Inspired by: http://www.tenouk.com/cpluscodesnippet/sortarrayelementasc.html
         for (uint8_t i = 1; i < objectsDetected; i++) {
             for (uint8_t j = 0; j < objectsDetected - 1; j++) {
                 if (moments[j].centerX > moments[j + 1].centerX) {
-                    float tempX = moments[j].centerX;
-                    float tempY = moments[j].centerY;
-                    moments[j].centerX = moments[j + 1].centerX;
-                    moments[j].centerY = moments[j + 1].centerY;
-                    moments[j + 1].centerX = tempX;
-                    moments[j + 1].centerY = tempY;
+                    moments_t temp = moments[j];
+                    moments[j] = moments[j + 1];
+                    moments[j + 1] = temp;
                 }
             }
         }
 
-        static float lastMinCenterX = -1;
-        static const float ignoreWidth = 10;
-        static const uint8_t nZombies = 6; // Track up to this number of zombies
+        static double zombieDeathTimer = 0;
+        static const uint16_t waitTime = 250; // Wait x ms after solenoid has gone all the way up down, as the zombie need to vanish
+        static bool timerReset;
+        if (solenoidDone && timerReset) {
+            timerReset = false;
+            zombieDeathTimer = (double)getTickCount(); // Set timer value
+        }
+
+        // Draw blue line indicating where it is actually looking, as the zombies need to vanish
+        static const float ignoreWidth = 5;
+        static float lastCenterX = -ignoreWidth;
+        if (lastCenterX > 0 && (!solenoidDone || ((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 <= waitTime))
+            line(image, Point(lastCenterX + ignoreWidth, 0), Point(lastCenterX + ignoreWidth, image.size().height), Scalar(255, 0, 0));
+
+        imshow("Areas", image);
+
+#if 0 // Used to analyze the images
+        static uint16_t counter = 0;
+        char buf[30];
+        sprintf(buf, "img/image%u.jpg", counter++);
+        imwrite(buf, image);
+#endif
+        static const uint8_t nZombies = 4; // Track up to this number of zombies
         static int8_t zombieCounter[nZombies];
-        static const uint8_t waitTime = 250;
         for (uint8_t i = 0; i < nZombies; i++) {
             if (moments[i].centerY > borderWidth && moments[i].centerY < image.size().height - borderWidth) { // Ignore plants in the border
-                if ((((double)getTickCount() - zombieTimer) / getTickFrequency() * 1000.0 > waitTime) || (moments[i].centerX >= lastMinCenterX + ignoreWidth)) { // If it has been more than 100 ms since last zombie was killed or the center x position is above
+                if (solenoidDone && (((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 > waitTime)/* || (moments[i].centerX >= lastCenterX + ignoreWidth)*/) { // If it has been more than x ms since last zombie was killed or the center x position is above
                     if (moments[i].centerY > image.size().height / 2) {
                         zombieCounter[i]++;
-                        if (zombieCounter[i] < 0) // We want x times in a row, so reset counter if it is negative
-                            zombieCounter[i] = 0;
+                        /*if (zombieCounter[i] < 0) // We want x times in a row, so reset counter if it is negative
+                            zombieCounter[i] = 0;*/
                     } else {
                         zombieCounter[i]--;
-                        if (zombieCounter[i] > 0) // We want x times in a row, so reset counter if it is positive
-                            zombieCounter[i] = 0;
+                        /*if (zombieCounter[i] > 0) // We want x times in a row, so reset counter if it is positive
+                            zombieCounter[i] = 0;*/
                     }
                     printf("zombieCounter[%u] = %d\n", i, zombieCounter[i]);
                 }
@@ -498,34 +521,27 @@ int main(int argc, char *argv[]) {
 
         uint8_t zombieDeaths = 0;
         for (uint8_t i = 0; i < nZombies; i++) {
-            if (abs(zombieCounter[0]) >= 9) { // Check how many times in a row we have seen that zombie
-                zombieTimer = (double)getTickCount(); // Set timer value
-                lastMinCenterX = moments[0].centerX; // Store center x value
-                zombieKilled = true;
+            if (abs(zombieCounter[0]) >= 2) { // Check how many times in a row we have seen that zombie
+                lastCenterX = moments[0].centerX; // Store center x value
+                solenoidDone = false;
+                timerReset = true;
                 zombieDeaths++;
                 if (zombieCounter[0] > 0) {
                     printf("Right\n");
-                    digitalWrite(rightSolenoidPin, LOW); // Kill zombie on the right side
-                    if (cvWaitKey(50) == 27) // Wait 50 ms for solenoid to go all the way down
-                        goto end; // Quit if ESC is pressed
-                    digitalWrite(rightSolenoidPin, HIGH);
+                    zombieBuffer.write(1); // Indicate to state machine that it should kill a zombie on the right side
                 } else {
                     printf("Left\n");
-                    digitalWrite(leftSolenoidPin, LOW); // Kill zombie on the left side
-                    if (cvWaitKey(50) == 27) // Wait 50 ms for solenoid to go all the way down
-                        goto end; // Quit if ESC is pressed
-                    digitalWrite(leftSolenoidPin, HIGH);
+                    zombieBuffer.write(-1); // Indicate to state machine that it should kill a zombie on the left side
                 }
-                if (cvWaitKey(30) == 27) // Wait 30 ms for solenoid to go up again
-                    goto end; // Quit if ESC is pressed
                 for (uint8_t i = 0; i < nZombies - 1; i++)
                     zombieCounter[i] = zombieCounter[i + 1]; // Move all one down
             } else
                 break;
         }
         for (int8_t i = nZombies; i > nZombies - zombieDeaths; i--)
-            zombieCounter[i - 1] = 0; // Reset to initial value, as they are move down
-#endif
+            zombieCounter[i - 1] = 0; // Reset to initial value, as they are moved down
+
+        runSolenoidStateMachine(); // This state machine control the solenoids without blocking the code
 #endif
 
     #if 0
@@ -534,15 +550,27 @@ int main(int argc, char *argv[]) {
         imshow("Histogram", hist);
     #endif
 
-#if PRINT_TIMING || PRINT_FPS
-        printf("Total = %f ms\n", ((double)getTickCount() - startTimer) / getTickFrequency() * 1000.0);
-#endif
-
         if (firstRun) {
             firstRun = false;
-            printf("Press any key to start\n");
-            cvWaitKey(0);
+            printf("\n\nPress any key to start\n");
+            if (cvWaitKey() == 27)
+                goto end; // Bail out if user press ESC
+        } else {
+            double dt =  ((double)getTickCount() - startTimer) / getTickFrequency() * 1000.0;
+            int delay = FPS_MS - dt;
+            if (delay <= 0) // If the loop has spent more than 30 ms we will just wait the minimum amount
+                delay = 1; // Set delay to 1 ms, as 0 will wait infinitely
+            if (cvWaitKey(delay) == 27) // Limit FPS to 50
+                goto end; // Wait 1ms to see if ESC is pressed
+
+#if PRINT_FPS
+            printf("FPS = %.2f\n", 1.0/(((double)getTickCount() - startTimer) / getTickFrequency()));
+#endif
         }
+
+#if PRINT_TIMING
+        printf("Total = %f ms\n", ((double)getTickCount() - startTimer) / getTickFrequency() * 1000.0);
+#endif
     }
 
 end:

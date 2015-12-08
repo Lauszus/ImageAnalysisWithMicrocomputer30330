@@ -1,6 +1,7 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 
+#include "contours.h"
 #include "histogram.h"
 #include "misc.h"
 
