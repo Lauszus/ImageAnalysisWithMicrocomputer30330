@@ -2,9 +2,10 @@ CC=g++
 CFLAGS+=`pkg-config --cflags opencv`
 LDFLAGS+=`pkg-config --libs opencv`
 
-# Link UV4L libraries on ARM
+# Link UV4L and WiringPi libraries on ARM
 ifneq ($(filter arm%,$(shell uname -m)),)
-	LDFLAGS+=-L/usr/lib/uv4l/uv4lext/armv6l -luv4lext -Wl,-rpath,'/usr/lib/uv4l/uv4lext/armv6l'
+	CFLAGS+=-I/usr/local/include
+	LDFLAGS+=-L/usr/lib/uv4l/uv4lext/armv6l -luv4lext -Wl,-rpath,'/usr/lib/uv4l/uv4lext/armv6l' -L/usr/local/lib -lwiringPi
 endif
 
 # Change this to the name of your main file
@@ -30,7 +31,7 @@ clean:
 
 # Run executable inside bin directory
 run: all
-	./bin/$(PROG)
+	sudo ./bin/$(PROG)
 
 # Rebuild everything when makefile changes.
 $(OBJS): Makefile
