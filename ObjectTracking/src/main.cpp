@@ -455,17 +455,32 @@ int main(int argc, char *argv[]) {
 
             imshow("Window1", window1);
             imshow("Window2", window2);
-        } else {
-            resize(image, image, image.size() * 2); // Resize image
-            imshow("Window", image);
         }
 
 #if __arm__ || 1
-        // Draw blue lines to indicate borders and middle
+        static double zombieDeathTimer = 0;
+        static const uint16_t waitTime = 250; // Wait x ms after solenoid has gone all the way up down, as the zombie need to vanish
+        static bool waitForSolenoidDone = false;
+        if (solenoidDone && waitForSolenoidDone) {
+            waitForSolenoidDone = false;
+            zombieDeathTimer = (double)getTickCount(); // Set timer value
+        }
+
         static const uint8_t borderWidth = 15;
-        line(image, Point(0, borderWidth), Point(image.size().width, borderWidth), Scalar(255, 0, 0)); // Top border
-        line(image, Point(0, image.size().height / 2), Point(image.size().width, image.size().height / 2), Scalar(255, 0, 0)); // Middle
-        line(image, Point(0, image.size().height - borderWidth), Point(image.size().width, image.size().height - borderWidth), Scalar(255, 0, 0)); // Bottom border
+        if (DEBUG) {
+                // Draw blue lines to indicate borders and middle
+                line(image, Point(0, borderWidth), Point(image.size().width, borderWidth), Scalar(255, 0, 0)); // Top border
+                line(image, Point(0, image.size().height / 2), Point(image.size().width, image.size().height / 2), Scalar(255, 0, 0)); // Middle
+                line(image, Point(0, image.size().height - borderWidth), Point(image.size().width, image.size().height - borderWidth), Scalar(255, 0, 0)); // Bottom border
+
+                // Draw blue line indicating where it is actually looking, as the zombies need to vanish
+                /*static const float ignoreWidth = 5;
+                static float lastCenterX = -ignoreWidth;
+                if (lastCenterX > 0 && (!solenoidDone || ((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 <= waitTime))
+                    line(image, Point(lastCenterX + ignoreWidth, 0), Point(lastCenterX + ignoreWidth, image.size().height), Scalar(255, 0, 0));*/
+
+                imshow("Areas", image);
+        }
 
         // Sort moments in ascending order according to the centerX position
         // Inspired by: http://www.tenouk.com/cpluscodesnippet/sortarrayelementasc.html
@@ -479,22 +494,6 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        static double zombieDeathTimer = 0;
-        static const uint16_t waitTime = 250; // Wait x ms after solenoid has gone all the way up down, as the zombie need to vanish
-        static bool waitForSolenoidDone = false;
-        if (solenoidDone && waitForSolenoidDone) {
-            waitForSolenoidDone = false;
-            zombieDeathTimer = (double)getTickCount(); // Set timer value
-        }
-
-        // Draw blue line indicating where it is actually looking, as the zombies need to vanish
-        /*static const float ignoreWidth = 5;
-        static float lastCenterX = -ignoreWidth;
-        if (lastCenterX > 0 && (!solenoidDone || ((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 <= waitTime))
-            line(image, Point(lastCenterX + ignoreWidth, 0), Point(lastCenterX + ignoreWidth, image.size().height), Scalar(255, 0, 0));*/
-
-        imshow("Areas", image);
-
 #if 0 // Used to analyze the images
         static uint16_t counter = 0;
         char buf[30];
@@ -502,6 +501,7 @@ int main(int argc, char *argv[]) {
         imwrite(buf, image);
 #endif
 
+        // TODO: 1 skal jo være 0, hvis den ignorerer!
         static uint8_t rounds = 0;
         static uint8_t nZombies; // Track up to this number of zombies
         if (rounds < 10) {
@@ -511,9 +511,11 @@ int main(int argc, char *argv[]) {
             nZombies = 4;
         static int8_t zombieCounter[4];
 
+        //static double timer = 0;
         for (uint8_t i = 0; i < nZombies; i++) {
             if (moments[i].centerY > borderWidth && moments[i].centerY < image.size().height - borderWidth) { // Ignore plants in the border
                 if ((solenoidDone && (((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 > waitTime))) { // If it has been more than x ms since last zombie was killed or the center x position is above
+                    //timer = (double)getTickCount(); // Set timer value
                     if (moments[i].centerY > image.size().height / 2) {
                         zombieCounter[i]++;
                         /*if (zombieCounter[i] < 0) // We want x times in a row, so reset counter if it is negative
@@ -523,8 +525,16 @@ int main(int argc, char *argv[]) {
                         /*if (zombieCounter[i] > 0) // We want x times in a row, so reset counter if it is positive
                             zombieCounter[i] = 0;*/
                     }
-                    printf("zombieCounter[%u] = %d\n", i, zombieCounter[i]);
-                }
+                    if (DEBUG)
+                        printf("zombieCounter[%u] = %d\n", i, zombieCounter[i]);
+                } /*else if (i < 2 && moments[i].centerX >= lastCenterX + ignoreWidth && ((double)getTickCount() - timer) / getTickFrequency() * 1000.0 > 300) {
+                    timer = (double)getTickCount(); // Set timer value
+                    if (moments[i].centerY > image.size().height / 2)
+                        zombieCounter[0]++;
+                    else
+                        zombieCounter[0]--;
+                    break;
+                }*/
             }
         }
 
@@ -536,10 +546,12 @@ int main(int argc, char *argv[]) {
                 waitForSolenoidDone = true;
                 zombieDeaths++;
                 if (zombieCounter[0] > 0) {
-                    printf("Right\n");
+                    if (DEBUG)
+                        printf("Right\n");
                     zombieBuffer.write(1); // Indicate to state machine that it should kill a zombie on the right side
                 } else {
-                    printf("Left\n");
+                    if (DEBUG)
+                        printf("Left\n");
                     zombieBuffer.write(-1); // Indicate to state machine that it should kill a zombie on the left side
                 }
                 for (uint8_t i = 0; i < nZombies - 1; i++)
@@ -561,7 +573,8 @@ int main(int argc, char *argv[]) {
 
         if (firstRun) {
             firstRun = false;
-            printf("\n\nPress any key to start\n");
+            if (DEBUG)
+                printf("\n\nPress any key to start\n");
             while (1) {
                 if (!digitalRead(buttonPin)) { // Bottom is active low
                     while (!digitalRead(buttonPin)); // Wait for button to be released again, so we do not bail out accidently
