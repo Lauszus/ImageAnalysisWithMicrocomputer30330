@@ -27,16 +27,6 @@ static bool valueChanged;
 
 #if __arm__
 static const uint8_t leftSolenoidPin = 9, rightSolenoidPin = 7, buttonPin = 8; // These first two pins control the two solenoids the last is a button input
-#endif
-
-void valueChangedCallBack(int pos) {
-    valueChanged  = true;
-}
-
-#if !(__arm__)
-#define digitalWrite(pin, val) (void(0)) // Just added so it compiles on non-arm platforms
-#define digitalRead(pin) false
-#endif
 
 enum Solenoid_e {
     SOLENOID_READ,
@@ -45,7 +35,17 @@ enum Solenoid_e {
 };
 
 static bool solenoidDone;
+#endif
 
+#if !(__arm__)
+#define digitalWrite(pin, val) (void(0)) // Just added so it compiles on non-arm platforms
+#endif
+
+static void valueChangedCallBack(int pos) {
+    valueChanged  = true;
+}
+
+#if __arm__
 static void runSolenoidStateMachine(void) {
     static Solenoid_e state = SOLENOID_READ;
     static int val;
@@ -82,6 +82,7 @@ static void runSolenoidStateMachine(void) {
             break;
     }
 }
+#endif
 
 int main(int argc, char *argv[]) {
     /*for (int i = 0; i < argc; i++)
@@ -115,6 +116,9 @@ int main(int argc, char *argv[]) {
     int objectMax = 1750;
 
     int cropPadding = 30;
+
+    int areaMin = 0; // Can be any size
+    int areaMax = (uint16_t)~0;
 #elif 1 // ZomBuset
     int iLowH = 40;
     int iHighH = 80;
@@ -160,6 +164,9 @@ int main(int argc, char *argv[]) {
 
     int objectMin = 1600;
     int objectMax = 2000;
+
+    int areaMin = 0; // Can be any size
+    int areaMax = (uint16_t)~0;
 #else // Blue tape
     int iLowH = 90;
     int iHighH = 130;
@@ -180,6 +187,9 @@ int main(int argc, char *argv[]) {
 
     int objectMin = 1600;
     int objectMax = 1950;
+
+    int areaMin = 0; // Can be any size
+    int areaMax = (uint16_t)~0;
 #endif
 
     if (DEBUG) {
@@ -235,7 +245,6 @@ int main(int argc, char *argv[]) {
     solenoidDone = true;
 #endif
 
-    static bool firstRun = true;
     while (1) {
         if (DEBUG && valueChanged) {
             valueChanged = false;
@@ -457,7 +466,7 @@ int main(int argc, char *argv[]) {
             imshow("Window2", window2);
         }
 
-#if __arm__ || 1
+#if __arm__
         static double zombieDeathTimer = 0;
         static const uint16_t waitTime = 250; // Wait x ms after solenoid has gone all the way up down, as the zombie need to vanish
         static bool waitForSolenoidDone = false;
@@ -571,33 +580,21 @@ int main(int argc, char *argv[]) {
         imshow("Histogram", hist);
     #endif
 
-        if (firstRun) {
-            firstRun = false;
-            if (DEBUG)
-                printf("\n\nPress any key to start\n");
-            while (1) {
-                if (!digitalRead(buttonPin)) { // Bottom is active low
-                    while (!digitalRead(buttonPin)); // Wait for button to be released again, so we do not bail out accidently
-                    break;
-                }
-                int key = cvWaitKey(1);
-                if (key == 27)
-                    goto end; // Bail out if user press ESC
-                else if (key >= 0) // Check if any key was pressed
-                    break;
-            }
-        } else {
-            double dt =  ((double)getTickCount() - startTimer) / getTickFrequency() * 1000.0;
-            int delay = FPS_MS - dt; // Limit FPS to 50
-            if (delay <= 0) // If the loop has spent more than 30 ms we will just wait the minimum amount
-                delay = 1; // Set delay to 1 ms, as 0 will wait infinitely
-            if (cvWaitKey(delay) == 27 || !digitalRead(buttonPin)) // End if either ESC or button is pressed
-                goto end; // Wait 1ms to see if ESC is pressed
+
+        double dt =  ((double)getTickCount() - startTimer) / getTickFrequency() * 1000.0;
+        int delay = FPS_MS - dt; // Limit FPS to 50
+        if (delay <= 0) // If the loop has spent more than 30 ms we will just wait the minimum amount
+            delay = 1; // Set delay to 1 ms, as 0 will wait infinitely
+#if __arm__
+        if (cvWaitKey(delay) == 27 || !digitalRead(buttonPin)) // End if either ESC or button is pressed
+#else
+        if (cvWaitKey(delay) == 27) // End if ESC is pressed
+#endif
+            goto end; // Wait 1ms to see if ESC is pressed
 
 #if PRINT_FPS
             printf("FPS = %.2f\n", 1.0/(((double)getTickCount() - startTimer) / getTickFrequency()));
 #endif
-        }
 
 #if PRINT_TIMING
         printf("Total = %f ms\n", ((double)getTickCount() - startTimer) / getTickFrequency() * 1000.0);
