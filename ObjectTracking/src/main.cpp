@@ -26,7 +26,7 @@ using namespace cv;
 static bool valueChanged;
 
 #if __arm__
-static const uint8_t leftSolenoidPin = 7, rightSolenoidPin = 9; // These two pins control the two solenoids
+static const uint8_t leftSolenoidPin = 9, rightSolenoidPin = 7, buttonPin = 8; // These first two pins control the two solenoids the last is a button input
 #endif
 
 void valueChangedCallBack(int pos) {
@@ -34,7 +34,8 @@ void valueChangedCallBack(int pos) {
 }
 
 #if !(__arm__)
-#define digitalWrite(pin, val) (void(0)); // Just added so it compiles on non-arm platforms
+#define digitalWrite(pin, val) (void(0)) // Just added so it compiles on non-arm platforms
+#define digitalRead(pin) false
 #endif
 
 enum Solenoid_e {
@@ -62,21 +63,19 @@ static void runSolenoidStateMachine(void) {
             }
             break;
         case SOLENOID_KILL:
-            if (val > 0) { // Right side
+            if (val > 0) // Right side
                 digitalWrite(rightSolenoidPin, LOW); // Kill zombie on the right side
-            } else { // Left side
+            else // Left side
                 digitalWrite(leftSolenoidPin, LOW); // Kill zombie on the left side
-            }
             timer = (double)getTickCount();
             state = SOLENOID_LIFT;
             break;
         case SOLENOID_LIFT:
             if (((double)getTickCount() - timer) / getTickFrequency() * 1000.0 > 30) { // Wait 30 ms for solenoid to go all the way down
-                if (val > 0) { // Right side
+                if (val > 0) // Right side
                     digitalWrite(rightSolenoidPin, HIGH);
-                } else { // Left side
+                else // Left side
                     digitalWrite(leftSolenoidPin, HIGH);
-                }
                 timer = (double)getTickCount();
                 state = SOLENOID_READ;
             }
@@ -231,6 +230,8 @@ int main(int argc, char *argv[]) {
     pinMode(rightSolenoidPin, OUTPUT);
     digitalWrite(leftSolenoidPin, HIGH); // Input is inverted
     digitalWrite(rightSolenoidPin, HIGH);
+    pinMode(buttonPin, INPUT);
+    pullUpDnControl(buttonPin, PUD_UP); // Enable pull-up resistor
     solenoidDone = true;
 #endif
 
@@ -561,14 +562,23 @@ int main(int argc, char *argv[]) {
         if (firstRun) {
             firstRun = false;
             printf("\n\nPress any key to start\n");
-            if (cvWaitKey() == 27)
-                goto end; // Bail out if user press ESC
+            while (1) {
+                if (!digitalRead(buttonPin)) { // Bottom is active low
+                    while (!digitalRead(buttonPin)); // Wait for button to be released again, so we do not bail out accidently
+                    break;
+                }
+                int key = cvWaitKey(1);
+                if (key == 27)
+                    goto end; // Bail out if user press ESC
+                else if (key >= 0) // Check if any key was pressed
+                    break;
+            }
         } else {
             double dt =  ((double)getTickCount() - startTimer) / getTickFrequency() * 1000.0;
-            int delay = FPS_MS - dt;
+            int delay = FPS_MS - dt; // Limit FPS to 50
             if (delay <= 0) // If the loop has spent more than 30 ms we will just wait the minimum amount
                 delay = 1; // Set delay to 1 ms, as 0 will wait infinitely
-            if (cvWaitKey(delay) == 27) // Limit FPS to 50
+            if (cvWaitKey(delay) == 27 || !digitalRead(buttonPin)) // End if either ESC or button is pressed
                 goto end; // Wait 1ms to see if ESC is pressed
 
 #if PRINT_FPS
