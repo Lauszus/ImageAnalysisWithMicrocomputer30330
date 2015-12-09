@@ -245,7 +245,12 @@ int main(int argc, char *argv[]) {
     solenoidDone = true;
 #endif
 
-    while (1) {
+#if __arm__
+    printf("Ready to kill some zombies!\n");
+    while (digitalRead(buttonPin)) { // Quit if button is pressed
+#else
+    while (cvWaitKey(1) != 27) { // End if ESC is pressed
+#endif
         if (DEBUG && valueChanged) {
             valueChanged = false;
             printf("HSV: %u %u\t%u %u\t%u %u\t\tSize: %d %d\tFractile filter: %d %d\tNeighbor size: %d\tObject: %d %d\tPadding: %d\tArea: %d %d\n", iLowH, iHighH, iLowS, iHighS, iLowV, iHighV, size1, size2, windowSize, percentile, neighborSize, objectMin, objectMax, cropPadding, areaMin, areaMax);
