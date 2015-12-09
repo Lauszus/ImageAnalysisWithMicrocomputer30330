@@ -4,5 +4,6 @@
 using namespace cv;
 
 Mat *getSegments(const Mat *image, uint8_t *nSegments, const int8_t neightborSize, bool whitePixels);
+void releaseSegments(void);
 
 #endif

@@ -29,7 +29,6 @@ static uint8_t checkNeighbors(const Mat *image, const Mat *segments, const size_
             }
         }
     }
-
     return id;
 }
 
@@ -89,4 +88,9 @@ Mat *getSegments(const Mat *image, uint8_t *nSegments, const int8_t neighborSize
         return segmentImg;
     }
     return NULL;
+}
+
+void releaseSegments(void) {
+    for (uint8_t i = 0; i < MAX_SEGMENTS; i++)
+        segmentImg[i].release();
 }

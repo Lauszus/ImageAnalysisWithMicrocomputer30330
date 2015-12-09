@@ -605,6 +605,7 @@ int main(int argc, char *argv[]) {
     }
 
 end:
+    releaseSegments(); // Release all segments inside segmentation.cpp
 #if __arm__
     digitalWrite(rightSolenoidPin, HIGH);
     digitalWrite(leftSolenoidPin, HIGH);
