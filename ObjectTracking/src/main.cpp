@@ -346,7 +346,7 @@ int main(int argc, char *argv[]) {
         //printf("%d,%d,%d,%d\n", minX, maxX, minY, maxY);
 
         if (maxX == 0 || maxY == 0)
-            continue;
+            continue; // Skip, as there was no object detected
 
         minX -= cropPadding;
         minY -= cropPadding;
@@ -480,12 +480,12 @@ int main(int argc, char *argv[]) {
             zombieDeathTimer = (double)getTickCount(); // Set timer value
         }
 
-        static const uint8_t borderWidth = 15;
+        static const int8_t topBorder = 5, bottomBorder = 20, middleOffset = -10;
         if (DEBUG) {
                 // Draw blue lines to indicate borders and middle
-                line(image, Point(0, borderWidth), Point(image.size().width, borderWidth), Scalar(255, 0, 0)); // Top border
-                line(image, Point(0, image.size().height / 2), Point(image.size().width, image.size().height / 2), Scalar(255, 0, 0)); // Middle
-                line(image, Point(0, image.size().height - borderWidth), Point(image.size().width, image.size().height - borderWidth), Scalar(255, 0, 0)); // Bottom border
+                line(image, Point(0, topBorder), Point(image.size().width, topBorder), Scalar(255, 0, 0)); // Top border
+                line(image, Point(0, image.size().height / 2 + middleOffset), Point(image.size().width, image.size().height / 2 + middleOffset), Scalar(255, 0, 0)); // Middle
+                line(image, Point(0, image.size().height - bottomBorder), Point(image.size().width, image.size().height - bottomBorder), Scalar(255, 0, 0)); // Bottom border
 
                 // Draw blue line indicating where it is actually looking, as the zombies need to vanish
                 /*static const float ignoreWidth = 5;
@@ -527,10 +527,10 @@ int main(int argc, char *argv[]) {
 
         //static double timer = 0;
         for (uint8_t i = 0; i < nZombies; i++) {
-            if (moments[i].centerY > borderWidth && moments[i].centerY < image.size().height - borderWidth) { // Ignore plants in the border
+            if (moments[i].centerY > topBorder && moments[i].centerY < image.size().height - bottomBorder) { // Ignore plants in the border
                 if ((solenoidDone && (((double)getTickCount() - zombieDeathTimer) / getTickFrequency() * 1000.0 > waitTime))) { // If it has been more than x ms since last zombie was killed or the center x position is above
                     //timer = (double)getTickCount(); // Set timer value
-                    if (moments[i].centerY > image.size().height / 2) {
+                    if (moments[i].centerY > image.size().height / 2 + middleOffset) {
                         zombieCounter[i]++;
                         /*if (zombieCounter[i] < 0) // We want x times in a row, so reset counter if it is negative
                             zombieCounter[i] = 0;*/
@@ -543,7 +543,7 @@ int main(int argc, char *argv[]) {
                         printf("zombieCounter[%u] = %d\n", i, zombieCounter[i]);
                 } /*else if (i < 2 && moments[i].centerX >= lastCenterX + ignoreWidth && ((double)getTickCount() - timer) / getTickFrequency() * 1000.0 > 300) {
                     timer = (double)getTickCount(); // Set timer value
-                    if (moments[i].centerY > image.size().height / 2)
+                    if (moments[i].centerY > image.size().height / 2 + middleOffset)
                         zombieCounter[0]++;
                     else
                         zombieCounter[0]--;
@@ -595,7 +595,7 @@ int main(int argc, char *argv[]) {
 #else
         if (cvWaitKey(delay) == 27) // End if ESC is pressed
 #endif
-            goto end; // Wait 1ms to see if ESC is pressed
+            goto end; // TODO: Run solenoids while waiting
 
 #if PRINT_FPS
             printf("FPS = %.2f\n", 1.0/(((double)getTickCount() - startTimer) / getTickFrequency()));
