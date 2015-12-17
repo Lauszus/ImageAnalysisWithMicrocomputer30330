@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
     static Mat imageFull = imread("../files/PEN.pgm", IMREAD_GRAYSCALE);
     static Mat image = imageFull(Rect(2, 2, imageFull.size().width - 2 * 2, imageFull.size().height - 2 * 2)).clone(); // Crop two pixels from both sides
     imshow("Image", image);
+    imwrite("img/image.png", image);
 
 restart:
     printf("Threshold: %d\tSize: %d,%d\n", thresholdValue, size1, size2);
@@ -43,6 +44,9 @@ restart:
     for (int i = 0; i < imageThreshold.total() * imageThreshold.channels(); i++)
         imageThreshold.data[i] = imageThreshold.data[i] >= thresholdValue ? 255 : 0; // Draw threshold image
     imshow("Threshold", imageThreshold);
+    Mat imageThresholdBorder;
+    copyMakeBorder(imageThreshold, imageThresholdBorder, 1, 1, 1, 1, BORDER_CONSTANT); // Add a border before writing
+    imwrite("img/imageThreshold.png", imageThresholdBorder);
 
     // Apply morphological closing and opening
     Mat morphologicalFilter = imageThreshold.clone();
@@ -56,10 +60,15 @@ restart:
     dilate(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size1, size1)));
 
     imshow("Morphological filter", morphologicalFilter);
+    Mat morphologicalFilterBorder;
+    copyMakeBorder(morphologicalFilter, morphologicalFilterBorder, 1, 1, 1, 1, BORDER_CONSTANT); // Add a border before writing
+    imwrite("img/morphologicalFilter.png", morphologicalFilterBorder);
 
     Mat contour;
-    if (contoursSearch(&morphologicalFilter, &contour, CONNECTED_8, false))
+    if (contoursSearch(&morphologicalFilter, &contour, CONNECTED_8, false)) {
         imshow("Contour", contour);
+        imwrite("img/contour.png", contour);
+    }
 
     char key = 0;
     valueChanged = false;

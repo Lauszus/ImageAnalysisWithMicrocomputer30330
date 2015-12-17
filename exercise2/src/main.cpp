@@ -122,12 +122,15 @@ restart:
 #else
     Mat image;
     static uint8_t imageN = 0;
+    char buf[30], fileName[10];
     if (imageN == 0)
-        image = imread("image1.png", IMREAD_GRAYSCALE);
+        strcpy(fileName, "image1");
     else if (imageN == 1)
-        image = imread("image2.png", IMREAD_GRAYSCALE);
+        strcpy(fileName, "image2");
     else
-        image = imread("image3.png", IMREAD_GRAYSCALE);
+        strcpy(fileName, "image3");
+    sprintf(buf, "%s%s", fileName, ".png");
+    image = imread(buf, IMREAD_GRAYSCALE);
 
     if (++imageN > 2)
         imageN = 0;
@@ -163,6 +166,10 @@ restart:
     hist.copyTo(farRight);
 
     imshow("Window", window);
+    Mat windowBorder;
+    copyMakeBorder(window, windowBorder, 1, 1, 1, 1, BORDER_CONSTANT); // Add a border before writing
+    sprintf(buf, "img/%s%s", fileName, "_window.png");
+    imwrite(buf, windowBorder);
 #endif
 
     char key = 0;

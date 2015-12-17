@@ -60,9 +60,13 @@ restart:
     imageNoise.copyTo(left);
     fractileFiltedImage.copyTo(center);
     static LowpassFilter lowpassFilter;
-    lowpassFilter(&fractileFiltedImage).copyTo(right); // Lowpass filter fractile filter result
+    Mat lowpassImage = lowpassFilter(&fractileFiltedImage);
+    lowpassImage.copyTo(right); // Lowpass filter fractile filter result
 
     imshow("Fractile filter", fractileWindow);
+    imwrite("img/imageNoise.png", imageNoise);
+    imwrite("img/fractileFiltedImage.png", fractileFiltedImage);
+    imwrite("img/lowpassImage.png", lowpassImage);
 
     // Show some of the other filters
     static Mat image = imread("../files/shuttle_640x480.jpg", IMREAD_COLOR);
@@ -76,28 +80,38 @@ restart:
 #endif
 
     LinearFilter *filter;
+    char filterName[50];
     static int8_t imageN = 0;
     if (imageN < 0)
-        imageN = 3;
-    else if (imageN > 3)
+        imageN = 5;
+    else if (imageN > 5)
         imageN = 0;
     if (imageN == 0) {
-        printf("HighpassFilter\n");
+        strcpy(filterName, "LowpassFilter");
+        static LowpassFilter lowpassFilter;
+        filter = &lowpassFilter;
+    } else if (imageN == 1) {
+        strcpy(filterName, "HighpassFilter");
         static HighpassFilter highpassFilter;
         filter = &highpassFilter;
-    } else if (imageN == 1) {
-        printf("LaplacianFilter\n");
+    } else if (imageN == 2) {
+        strcpy(filterName, "LaplacianFilter");
         static LaplacianFilter laplacianFilter;
         filter = &laplacianFilter;
-    } else if (imageN == 2) {
-        printf("LaplacianTriangularFilter\n");
+    } else if (imageN == 3) {
+        strcpy(filterName, "LaplacianLowpassFilter");
+        static LinearFilter linearFilter = LaplacianFilter() + 9 * LowpassFilter();
+        filter = &linearFilter;
+    } else if (imageN == 4) {
+        strcpy(filterName, "LaplacianTriangularFilter");
         static LaplacianTriangularFilter laplacianTriangularFilter;
         filter = &laplacianTriangularFilter;
     } else {
-        printf("LaplaceGaussianFilter\n");
+        strcpy(filterName, "LaplaceGaussianFilter");
         static LaplaceGaussianFilter laplaceGaussianFilter;
         filter = &laplaceGaussianFilter;
     }
+    printf("%s\n", filterName);
 
 #if PRINT_SPEED
     int64_t timer = getTickCount();
@@ -124,19 +138,23 @@ restart:
     // Draw window
     Mat imageColor;
     if (image.channels() == 1)
-        cvtColor(image, imageColor, COLOR_GRAY2BGR);
+        cvtColor(image, imageColor, COLOR_GRAY2BGR); // Convert image into 3-channel image, so we can draw in color
     else
-        imageColor = image.clone(); // Convert image into 3-channel image, so we can draw in color
+        imageColor = image.clone(); // Just copy image
     Mat window(imageColor.size().height, imageColor.size().width + filteredImage.size().width + filter2DImage.size().width, CV_8UC3);
 
     left = Mat(window, Rect(0, 0, imageColor.size().width, imageColor.size().height));
     imageColor.copyTo(left);
+    imwrite("img/imageColor.png", imageColor);
 
     center = Mat(window, Rect(imageColor.size().width, 0, filteredImage.size().width, filteredImage.size().height));
     if (filteredImage.channels() == 1)
         cvtColor(filteredImage, filteredImage, COLOR_GRAY2BGR); // Convert image to BGR, so it actually shows up
     line(filteredImage, Point(0, 0), Point(0, filteredImage.size().height), Scalar(255, 255, 255)); // Draw separator
     filteredImage.copyTo(center);
+    char buf[100];
+    sprintf(buf, "img/%s.png", filterName);
+    imwrite(buf, filteredImage);
 
     right = Mat(window, Rect(imageColor.size().width + filteredImage.size().width, 0, filter2DImage.size().width, filter2DImage.size().height));
     if (filter2DImage.channels() == 1)
