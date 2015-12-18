@@ -30,7 +30,8 @@ public:
         m(n),
         rows(2 * n + 1),
         columns(2 * m + 1),
-        size(_size) {
+        size(_size),
+        lastSum(0) {
         initCoefficients(coefficients, true);
     }
 
@@ -40,7 +41,8 @@ public:
         m(_m),
         rows(2 * n + 1),
         columns(2 * m + 1),
-        size(rows * columns) {
+        size(rows * columns),
+        lastSum(0) {
         initCoefficients(coefficients, true);
     };
 
@@ -54,7 +56,7 @@ public:
     }
 
     inline Mat operator () (const Mat *q) {
-        return apply(q);
+        return apply(q); // Apply filter
     }
 
     // Assignment operator
@@ -70,17 +72,26 @@ public:
     }
 
     LinearFilter& operator += (const LinearFilter& filter) {
-        uint8_t newSize;
-        float *coefficients = combineFilterKernels(c, size, filter.c, filter.size, &newSize);
-        *this = LinearFilter(coefficients, newSize);
-        delete[] coefficients;
-        return *this;
+        if (lastSum != 0) { // Make sure that it has been normalized
+            for (uint8_t i = 0; i < size; i++)
+                c[i] *= lastSum; // Undo normalization
+        }
+        if (filter.lastSum != 0) { // Make sure that it has been normalized
+            for (uint8_t i = 0; i < size; i++)
+                c[i] *= filter.lastSum; // Undo normalization. We can just multiply the current filter with the other gain, as it has the same effect in the end
+        }
+        return *this = combineFilterKernels(*this, filter);
     }
 
-    // Multiply filter all kernel coefficients with a gain
+    // Multiply all kernel coefficients with a gain
     LinearFilter& operator *= (const float gain) {
         for (uint8_t i = 0; i < size; i++)
             c[i] *= gain;
+        if (gain != 0) { // Prevent division with zero
+            if (lastSum == 0)
+                lastSum = 1; // If it has not been set before, set it equal to the inverse of the gain
+            lastSum /= gain; // Update last sum, so it can undo normalization correctly
+        }
         return *this;
     }
 
@@ -99,6 +110,7 @@ public:
             }
             //printf("Normalized: %f %.2f\n", sum, sum_new);
             assert(sum_new == 1.00f);
+            lastSum = sum;
         }
     }
 
@@ -139,7 +151,9 @@ private:
             normalize();
     }
 
-    float *combineFilterKernels(const float *coefficients1, const uint8_t size1, const float *coefficients2, const uint8_t size2, uint8_t *outSize);
+    LinearFilter combineFilterKernels(const LinearFilter filter1, const LinearFilter filter2);
+
+    float lastSum; // Used to undo normalization
 };
 
 // Multiply filter all kernel coefficients with a gain

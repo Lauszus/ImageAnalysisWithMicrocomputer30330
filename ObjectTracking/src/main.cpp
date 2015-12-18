@@ -431,7 +431,7 @@ int main(int argc, char *argv[]) {
                 image = drawMoments(&image, &momentsTmp, hypotenuse / 9.0f, 0); // Draw center of mass on original image
                 moments[objectsDetected++] = momentsTmp; // Save the moments of detected objects
     #if 0 // Use Laplacian filter with lowpass filter to draw the contour
-                static LinearFilter lowpassLaplacianFilter = LaplacianFilter() + 9 * LowpassFilter();
+                static LinearFilter lowpassLaplacianFilter = LaplacianFilter() + LowpassFilter();
                 Mat contour = lowpassLaplacianFilter.apply(&segments[i]); // Calculate contour
     #elif 0 // Use Laplacian filter to draw the contour
                 static LaplacianFilter laplacianFilter;
@@ -532,7 +532,6 @@ int main(int argc, char *argv[]) {
         imwrite(buf, image);
 #endif
 
-        // TODO: 1 skal jo være 0, hvis den ignorerer!
         static uint8_t rounds = 0;
         static uint8_t nZombies; // Track up to this number of zombies
         if (rounds < 10) {

@@ -117,7 +117,7 @@ restart:
         filter = &laplacianFilter;
     } else if (imageN == 3) {
         strcpy(filterName, "LaplacianLowpassFilter");
-        static LinearFilter linearFilter = LaplacianFilter() + 9 * LowpassFilter();
+        static LinearFilter linearFilter = LaplacianFilter() + LowpassFilter();
         filter = &linearFilter;
     } else if (imageN == 4) {
         strcpy(filterName, "LaplacianTriangularFilter");

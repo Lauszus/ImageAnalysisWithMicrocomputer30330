@@ -25,7 +25,7 @@
 using namespace std;
 using namespace cv;
 
-// Multiply filter all kernel coefficients with a gain
+// Multiply all kernel coefficients with a gain
 const LinearFilter operator * (const LinearFilter& filter, const float gain) {
     return LinearFilter(filter) *= gain;
 }
@@ -117,17 +117,18 @@ Mat LinearFilter::apply(const Mat *q) {
     return p;
 }
 
-float *LinearFilter::combineFilterKernels(const float *coefficients1, const uint8_t size1, const float *coefficients2, const uint8_t size2, uint8_t *outSize) {
-    // TODO: Can this be fixed by just using max row?
-    assert(size1 == size2); // Has to be equal sizes for now
+LinearFilter LinearFilter::combineFilterKernels(const LinearFilter filter1, const LinearFilter filter2) {
+    // TODO: Can this be fixed by just using max row or just pad smallest kernel?
+    assert(filter1.size == filter2.size); // Has to be equal sizes for now
 
+    const uint8_t size1 = filter1.size;
+    const uint8_t size2 = filter2.size;
     const uint8_t rows1 = sqrtf(size1);
     const uint8_t rows2 = sqrtf(size2);
     const uint8_t outRow =  rows1 + rows2 - 1;
-    *outSize = outRow * outRow;
+    const uint8_t outSize = outRow * outRow;
 
-    float *c = new float[*outSize];
-
+    float c[outSize];
     for (uint8_t y = 0; y < outRow; y++) {
         for (uint8_t x = 0; x < outRow; x++) {
             size_t index = x + y * outRow;
@@ -143,7 +144,7 @@ float *LinearFilter::combineFilterKernels(const float *coefficients1, const uint
                 for (uint8_t j = startJ; j < stopJ; j++) {
                     uint8_t subIndex1 = i * rows1 + j;
                     uint8_t subIndex2 = (size2 - 1) - x - y * rows2 + (j + i * rows2);
-                    total += coefficients1[subIndex1] * coefficients2[subIndex2];
+                    total += filter1.c[subIndex1] * filter2.c[subIndex2];
                     //printf("Index: %lu %u %u\n", index, subIndex1, subIndex2);
                 }
             }
@@ -152,7 +153,7 @@ float *LinearFilter::combineFilterKernels(const float *coefficients1, const uint
         }
     }
 
-    return c;
+    return LinearFilter(c, outSize); // Return new filter
 }
 
 static void addRemoveToHistogram(histogram_t *histogram, const Mat *image, bool add) {
@@ -234,7 +235,7 @@ Mat fractileFilter(const Mat *image, const uint8_t windowSize, const uint8_t per
 
             // TODO: Fix this hack
             //static uint32_t counter = 0;
-            if (!skipBlackPixels  && windowWidth == windowSize && windowHeight == windowSize) // We have to recalculate the histogram every time if we are skipping pixels
+            if (!skipBlackPixels && windowWidth == windowSize && windowHeight == windowSize) // We have to recalculate the histogram every time if we are skipping pixels
                 addRemoveToHistogram(&histogram, &window, true); // Add next ride side to histogram
             else {
                 histogram = getHistogram(&window); // Only use this routine the first time
