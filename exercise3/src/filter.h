@@ -97,23 +97,6 @@ public:
 
     Mat apply(const Mat *q);
 
-    void normalize(void) {
-        float sum = 0;
-        for (uint8_t i = 0; i < size; i++)
-            sum += c[i];
-
-        float sum_new = 0;
-        if (sum < -0.0001f || sum > 0.0001f) { // Skip if value is very close to 0
-            for (uint8_t i = 0; i < size; i++) {
-                c[i] /= sum; // Normalize data
-                sum_new += c[i];
-            }
-            //printf("Normalized: %f %.2f\n", sum, sum_new);
-            assert(sum_new == 1.00f);
-            lastSum = sum;
-        }
-    }
-
     void printKernel(void) {
         for (uint8_t i = 0; i < rows; i++) {
             for (uint8_t j = 0; j < columns; j++)
@@ -149,6 +132,23 @@ private:
         }
         if (_normalize && sum != 0 && sum != 1)
             normalize();
+    }
+
+    void normalize(void) {
+        float sum = 0;
+        for (uint8_t i = 0; i < size; i++)
+            sum += c[i];
+
+        float sum_new = 0;
+        if (sum < -0.0001f || sum > 0.0001f) { // Skip if value is very close to 0
+            for (uint8_t i = 0; i < size; i++) {
+                c[i] /= sum; // Normalize data
+                sum_new += c[i];
+            }
+            //printf("Normalized: %f %.2f\n", sum, sum_new);
+            assert(sum_new == 1.00f);
+            lastSum = sum;
+        }
     }
 
     LinearFilter combineFilterKernels(const LinearFilter filter1, const LinearFilter filter2);
