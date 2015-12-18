@@ -45,8 +45,14 @@ int main(int argc, char *argv[]) {
 
     moveWindow(controlWindow, 0, 500); // Move window
 
+#if 1
     static Mat imageFull = imread("../files/PEN.pgm", IMREAD_GRAYSCALE);
     static Mat image = imageFull(Rect(2, 2, imageFull.size().width - 2 * 2, imageFull.size().height - 2 * 2)).clone(); // Crop two pixels from both sides
+#else
+    static Mat image = imread("../files/ariane5_1b.jpg", IMREAD_GRAYSCALE);
+    imwrite("img/ariane5_1b_grey.jpg", image);
+    thresholdValue = 190;
+#endif
     imshow("Image", image);
     imwrite("img/image.png", image);
 
