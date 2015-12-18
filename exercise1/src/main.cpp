@@ -15,10 +15,10 @@
  e-mail   :  lauszus@gmail.com
 */
 
-#include <stdio.h>
-#include "cv.h"
-#include "cxcore.h"
-#include "highgui.h"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+
+using namespace cv;
 
 typedef struct histogram_t {
     static const int nSize = 256;
@@ -35,7 +35,7 @@ restart:
     const char *filePath;
 #if 0
     argc = 2;
-    filePath = "../../files/ariane5_1b.jpg";
+    filePath = "../files/ariane5_1b.jpg";
 #else
     if (argc > 1)
         filePath = argv[1];
