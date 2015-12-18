@@ -15,10 +15,8 @@
  e-mail   :  lauszus@gmail.com
 */
 
-#include <stdio.h>
-#include "cv.h"
-#include "cxcore.h"
-#include "highgui.h"
+#include "opencv2/highgui.hpp"
+#include "opencv2/imgproc.hpp"
 
 using namespace cv;
 

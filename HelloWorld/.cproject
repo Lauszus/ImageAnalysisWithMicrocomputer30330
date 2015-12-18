@@ -29,8 +29,8 @@
 								<option id="gnu.cpp.compiler.option.optimization.level.1820712485" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.debugging.level.1654352977" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.1571470184" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="/usr/local/Cellar/opencv/2.4.12/include/opencv"/>
-									<listOptionValue builtIn="false" value="/usr/local/Cellar/opencv/2.4.12/include"/>
+									<listOptionValue builtIn="false" value="/usr/local/Cellar/opencv3/3.0.0/include/opencv"/>
+									<listOptionValue builtIn="false" value="/usr/local/Cellar/opencv3/3.0.0/include"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.dialect.std.453902279" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.659139649" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
@@ -38,9 +38,12 @@
 							<tool id="cdt.managedbuild.tool.gnu.cross.c.linker.71381473" name="Cross GCC Linker" superClass="cdt.managedbuild.tool.gnu.cross.c.linker"/>
 							<tool id="cdt.managedbuild.tool.gnu.cross.cpp.linker.169990716" name="Cross G++ Linker" superClass="cdt.managedbuild.tool.gnu.cross.cpp.linker">
 								<option id="gnu.cpp.link.option.paths.1723849474" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
-									<listOptionValue builtIn="false" value="/usr/local/Cellar/opencv/2.4.12/lib"/>
+									<listOptionValue builtIn="false" value="/usr/local/Cellar/opencv3/3.0.0/lib"/>
 								</option>
 								<option id="gnu.cpp.link.option.libs.1299170363" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
+									<listOptionValue builtIn="false" value="opencv_video"/>
+									<listOptionValue builtIn="false" value="opencv_imgcodecs"/>
+									<listOptionValue builtIn="false" value="opencv_videoio"/>
 									<listOptionValue builtIn="false" value="opencv_highgui"/>
 									<listOptionValue builtIn="false" value="opencv_imgproc"/>
 									<listOptionValue builtIn="false" value="opencv_core"/>
