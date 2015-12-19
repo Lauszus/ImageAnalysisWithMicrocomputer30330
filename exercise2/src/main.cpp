@@ -128,7 +128,7 @@ restart:
 
     const char *controlWindow = "Control";
     cvNamedWindow(controlWindow, CV_WINDOW_AUTOSIZE); // Create a window called "Control"
-    int thresholdValue = 72; // 105
+    int thresholdValue = 85;
     cvCreateTrackbar("Threshold", controlWindow, &thresholdValue, 255, thresholdCallBack);
     moveWindow(controlWindow, 0, 500); // Move window
 
