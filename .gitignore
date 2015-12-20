@@ -6,3 +6,5 @@ OldVersions/
 *.gcode
 *.gco
 lockfile.lck
+*.bak
+*cache.lib
