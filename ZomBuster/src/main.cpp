@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
 
     int areaMin = 0; // Can be any size
     int areaMax = (uint16_t)~0;
-#elif 1 // ZomBuset
+#else // ZomBuset
     int iLowH = 40;
     int iHighH = 80;
 
@@ -161,52 +161,6 @@ int main(int argc, char *argv[]) {
 
     int areaMin = 50;
     int areaMax = 100;
-#elif 0 // Red folder
-    int iLowH = 170;
-    int iHighH = 10;
-
-    int iLowS = 130;
-    int iHighS = 255;
-
-    int iLowV = 135;
-    int iHighV = 255;
-
-    int size1 = 30;
-    int size2 = 3;
-
-    int windowSize = 3;
-    int percentile = 20;
-
-    int neighborSize = 25;
-
-    int objectMin = 1600;
-    int objectMax = 2000;
-
-    int areaMin = 0; // Can be any size
-    int areaMax = (uint16_t)~0;
-#else // Blue tape
-    int iLowH = 90;
-    int iHighH = 130;
-
-    int iLowS = 55;
-    int iHighS = 255;
-
-    int iLowV = 30;
-    int iHighV = 255;
-
-    int size1 = 12;
-    int size2 = 1;
-
-    int windowSize = 3;
-    int percentile = 20;
-
-    int neighborSize = 25;
-
-    int objectMin = 1600;
-    int objectMax = 1950;
-
-    int areaMin = 0; // Can be any size
-    int areaMax = (uint16_t)~0;
 #endif
 
     if (DEBUG) {
