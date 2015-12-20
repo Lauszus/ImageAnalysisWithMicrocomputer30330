@@ -156,7 +156,7 @@ LinearFilter LinearFilter::combineFilterKernels(const LinearFilter filter1, cons
     return LinearFilter(c, outSize); // Return new filter
 }
 
-static void addRemoveToHistogram(histogram_t *histogram, const Mat *image, bool add) {
+static void addRemoveToFromHistogram(histogram_t *histogram, const Mat *image, bool add) {
     const Size size = image->size();
     const int width = size.width;
     const int height = size.height;
@@ -236,7 +236,7 @@ Mat fractileFilter(const Mat *image, const uint8_t windowSize, const uint8_t per
             // TODO: Fix this hack
             //static uint32_t counter = 0;
             if (!skipBlackPixels && windowWidth == windowSize && windowHeight == windowSize) // We have to recalculate the histogram every time if we are skipping pixels
-                addRemoveToHistogram(&histogram, &window, true); // Add next ride side to histogram
+                addRemoveToFromHistogram(&histogram, &window, true); // Add next side to histogram
             else {
                 histogram = getHistogram(&window); // Only use this routine the first time
                 //printf("Counter: %d %u %u %u %u\n", ++counter, windowX, windowY, windowWidth, windowHeight);
@@ -274,12 +274,59 @@ Mat fractileFilter(const Mat *image, const uint8_t windowSize, const uint8_t per
             index += channels;
 
             if (!skipBlackPixels && windowWidth == windowSize && windowHeight == windowSize)
-                addRemoveToHistogram(&histogram, &window, false); // Remove left side of window from histogram
+                addRemoveToFromHistogram(&histogram, &window, false); // Remove left side of window from histogram
         }
     }
 
     /*histogram_t histogram = getHistogram(&filteredImage);
     imshow("His", drawHistogram(&histogram, &filteredImage, Size(600, 400)));*/
 
+    return filteredImage;
+}
+
+// TODO: Optimize this, as this is a very slow approach
+Mat morphologicalFilter(const Mat *image, MorphologicalType type, const uint8_t structuringElementSize, bool whitePixels) {
+    assert(image->channels() == 1); // Picture must be a greyscale image
+
+    const Size size = image->size();
+    const int width = size.width;
+    const int height = size.height;
+    const uint8_t n = (structuringElementSize - 1)/2;
+
+    Mat filteredImage = image->clone(); // Create copy of original image
+    size_t index = 0;
+    for (size_t y = 0; y < height; y++) {
+        for (size_t x = 0; x < width; x++) {
+            uint8_t minMax = image->data[index];
+            if ((type == DILATION && whitePixels) || (type == EROSION && !whitePixels)) { // Max is used for dilation when looking for white pixels
+                if (minMax == 255) // It is already the maximum possible value
+                    goto breakout;
+            } else { // Max is used for erosion when looking for white pixels
+                if (minMax == 0) // It is already the minimum possible value
+                    goto breakout;
+            }
+            for (int i = -n; i <= n; i++) { // Look around image
+                for (int j = -n; j <= n; j++) {
+                    size_t subIndex = index + i * width + j;
+                    if (subIndex > 0 && subIndex < width * height && i != 0 && j != 0) { // Prevent overflow and make sure that we are not looking at the center pixel again
+                        if ((type == DILATION && whitePixels) || (type == EROSION && !whitePixels)) { // Max is used for dilation when looking for white pixels
+                            if (image->data[subIndex] > minMax)
+                                minMax = image->data[subIndex]; // Update maximum value
+                            if (minMax == 255)
+                                goto breakout; // Maximum possible value is found
+                        } else { // Max is used for erosion when looking for white pixels
+                            if (image->data[subIndex] < minMax)
+                                minMax = image->data[subIndex]; // Update minimum value
+                            if (minMax == 0)
+                                goto breakout; // Minimum possible value is found
+                        }
+                    }
+                }
+            }
+breakout:
+            filteredImage.data[index] = minMax; // Set pixel to min/max value of its neighbors
+            index++; // Increment index
+        }
+    }
     return filteredImage;
 }

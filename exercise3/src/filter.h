@@ -20,7 +20,13 @@
 
 using namespace cv;
 
+enum MorphologicalType {
+    EROSION = 0,
+    DILATION,
+};
+
 Mat fractileFilter(const Mat *image, const uint8_t windowSize, const uint8_t percentile, bool skipBlackPixels);
+Mat morphologicalFilter(const Mat *image, MorphologicalType type, const uint8_t structuringElementSize, bool whitePixels);
 
 class LinearFilter {
 public:
@@ -44,7 +50,7 @@ public:
         size(rows * columns),
         lastSum(0) {
         initCoefficients(coefficients, true);
-    };
+    }
 
     // Copy constructor
     LinearFilter(const LinearFilter& filter) {

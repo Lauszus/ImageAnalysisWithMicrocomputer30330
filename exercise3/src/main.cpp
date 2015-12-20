@@ -39,10 +39,16 @@ int main(int argc, char *argv[]) {
 
     const char *controlWindow = "Control";
     cvNamedWindow(controlWindow, CV_WINDOW_AUTOSIZE); // Create a window called "Control"
+
     int windowSize = 3;
-    cvCreateTrackbar("Window size", controlWindow, &windowSize, 10, thresholdCallBack);
     int percentile = 40;
+    int closingSize = 20;
+    int openingSize = 10;
+
+    cvCreateTrackbar("Window size", controlWindow, &windowSize, 10, thresholdCallBack);
     cvCreateTrackbar("Percentile", controlWindow, &percentile, 100, thresholdCallBack);
+    cvCreateTrackbar("Closing size", controlWindow, &closingSize, 30, thresholdCallBack);
+    cvCreateTrackbar("Opening size", controlWindow, &openingSize, 20, thresholdCallBack);
     //moveWindow(controlWindow, 0, 500); // Move window
 
 #if WEBCAM
@@ -63,7 +69,7 @@ restart:
     cvtColor(image, image, COLOR_BGR2GRAY); // Convert to greyscale
 #else
 restart:
-    printf("WindowSize %d\tPercentile: %d\n", windowSize, percentile);
+    printf("WindowSize %d\tPercentile: %d\tClosing and opening size: %d %d\n", windowSize, percentile, closingSize, openingSize);
 
     // Fractile filter demo
     static Mat imageNoise = imread("Medianfilterp_left.png", IMREAD_COLOR);
@@ -84,6 +90,46 @@ restart:
     imwrite("img/imageNoise.png", imageNoise);
     imwrite("img/fractileFiltedImage.png", fractileFiltedImage);
     imwrite("img/lowpassImage.png", lowpassImage);
+
+    // Morphological filter demo
+    Mat morphologicalImg = imread("morphological_example.png", IMREAD_GRAYSCALE);
+
+    Mat morphologicalImgOutput[6]; // Array for output images
+
+    // Morphological closing (Remove small bright spots (i.e. "salt") and connect small dark cracks)
+    morphologicalImgOutput[0] = morphologicalFilter(&morphologicalImg, DILATION, closingSize, false);
+    morphologicalImgOutput[1] = morphologicalFilter(&morphologicalImgOutput[0], EROSION, closingSize, false);
+
+    // Morphological opening (Remove small dark spots (i.e. "pepper") and connect small bright cracks)
+    morphologicalImgOutput[2] = morphologicalFilter(&morphologicalImg, EROSION, openingSize, false);
+    morphologicalImgOutput[3] = morphologicalFilter(&morphologicalImgOutput[2], DILATION, openingSize, false);
+
+    // Morphological opening on already closed image
+    morphologicalImgOutput[4] = morphologicalFilter(&morphologicalImgOutput[1], EROSION, openingSize, false);
+    morphologicalImgOutput[5] = morphologicalFilter(&morphologicalImgOutput[4], DILATION, openingSize, false);
+
+    copyMakeBorder(morphologicalImg, morphologicalImg, 1, 1, 1, 1, BORDER_CONSTANT); // Add a border before writing
+    for (uint8_t i = 0; i < 6; i++)
+        copyMakeBorder(morphologicalImgOutput[i], morphologicalImgOutput[i], 1, 1, 1, 1, BORDER_CONSTANT); // Add a border before writing
+
+    imwrite("img/morphologicalImg.png", morphologicalImg);
+    imwrite("img/morphologicalImgDialate1.png", morphologicalImgOutput[0]);
+    imwrite("img/morphologicalImgErode1.png", morphologicalImgOutput[1]);
+    imwrite("img/morphologicalImgErode2.png", morphologicalImgOutput[2]);
+    imwrite("img/morphologicalImgDialate2.png", morphologicalImgOutput[3]);
+    imwrite("img/morphologicalImgErode3.png", morphologicalImgOutput[4]);
+    imwrite("img/morphologicalImgDialate3.png", morphologicalImgOutput[5]);
+
+    resize(morphologicalImg, morphologicalImg, morphologicalImg.size() / 3); // Resize image
+    Mat window(morphologicalImg.size().height, 7 * morphologicalImg.size().width, morphologicalImg.type());
+    morphologicalImg.copyTo(Mat(window,  Rect(0, 0, morphologicalImg.size().width, morphologicalImg.size().height)));
+
+    for (uint8_t i = 0; i < 6; i++) {
+        resize(morphologicalImgOutput[i], morphologicalImgOutput[i], morphologicalImgOutput[i].size() / 3); // Resize image
+        morphologicalImgOutput[i].copyTo(Mat(window, Rect((i + 1) * morphologicalImg.size().width, 0, morphologicalImg.size().width, morphologicalImg.size().height)));
+    }
+
+    imshow("Morphological filter", window);
 
     // Show some of the other filters
     static Mat image = imread("../files/shuttle_640x480.jpg", IMREAD_COLOR);
@@ -158,7 +204,7 @@ restart:
         cvtColor(image, imageColor, COLOR_GRAY2BGR); // Convert image into 3-channel image, so we can draw in color
     else
         imageColor = image.clone(); // Just copy image
-    Mat window(imageColor.size().height, imageColor.size().width + filteredImage.size().width + filter2DImage.size().width, CV_8UC3);
+    window = Mat(imageColor.size().height, imageColor.size().width + filteredImage.size().width + filter2DImage.size().width, CV_8UC3);
 
     left = Mat(window, Rect(0, 0, imageColor.size().width, imageColor.size().height));
     imageColor.copyTo(left);
