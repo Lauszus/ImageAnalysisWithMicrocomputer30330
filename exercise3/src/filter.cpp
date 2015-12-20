@@ -308,7 +308,7 @@ Mat morphologicalFilter(const Mat *image, MorphologicalType type, const uint8_t 
             for (int i = -n; i <= n; i++) { // Look around image
                 for (int j = -n; j <= n; j++) {
                     size_t subIndex = index + i * width + j;
-                    if (subIndex > 0 && subIndex < width * height && i != 0 && j != 0) { // Prevent overflow and make sure that we are not looking at the center pixel again
+                    if (subIndex > 0 && subIndex < width * height && !(i == 0 && j == 0)) { // Prevent overflow and make sure that we are not looking at the center pixel again
                         if ((type == DILATION && whitePixels) || (type == EROSION && !whitePixels)) { // Max is used for dilation when looking for white pixels
                             if (image->data[subIndex] > minMax)
                                 minMax = image->data[subIndex]; // Update maximum value
