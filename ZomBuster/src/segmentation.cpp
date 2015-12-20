@@ -25,16 +25,16 @@ using namespace cv;
 static const uint8_t MAX_SEGMENTS = 10;
 static Mat segmentImg[MAX_SEGMENTS];
 
-static uint8_t checkNeighbors(const Mat *image, const Mat *segments, const size_t index, const int8_t neighborSize, bool whitePixels) {
+static uint8_t checkNeighbours(const Mat *image, const Mat *segments, const size_t index, const int8_t neighbourSize, bool whitePixels) {
     const Size size = image->size();
     const int width = size.width;
     const size_t total = image->total();
 
     uint8_t id = 0;
 
-    // Check all neighbors using 8-connected
-    for (int8_t i = -neighborSize; i <= neighborSize; i++) {
-        for (int8_t j = -neighborSize; j <= neighborSize; j++) {
+    // Check all neighbors using 8-connectedness
+    for (int8_t i = -neighbourSize; i <= neighbourSize; i++) {
+        for (int8_t j = -neighbourSize; j <= neighbourSize; j++) {
             int32_t subIndex = index + i * width + j;
             if (!(i == 0 && j == 0) && subIndex >= 0 && subIndex < total) { // Do not check x,y = (0,0) and prevent overflow
                 if ((bool)image->data[subIndex] == whitePixels) {
@@ -49,8 +49,8 @@ static uint8_t checkNeighbors(const Mat *image, const Mat *segments, const size_
     return id;
 }
 
-Mat *getSegments(const Mat *image, uint8_t *nSegments, const int8_t neighborSize, bool whitePixels) {
-    assert(image->channels() == 1); // Picture must be black and white image
+Mat *getSegments(const Mat *image, uint8_t *nSegments, const int8_t neighbourSize, bool whitePixels) {
+    assert(image->channels() == 1); // Picture must be a binary image
 
     const Size size = image->size();
     const int width = size.width;
@@ -65,7 +65,7 @@ Mat *getSegments(const Mat *image, uint8_t *nSegments, const int8_t neighborSize
     for (size_t y = 0; y < height; y++) {
         for (size_t x = 0; x < width; x++) {
             if ((bool)image->data[index] == whitePixels) { // Check if we have found a pixel
-                uint8_t id = checkNeighbors(image, &segments, index, neighborSize, whitePixels);
+                uint8_t id = checkNeighbours(image, &segments, index, neighbourSize, whitePixels);
                 if (id > 0) {
                     if (id == 255) // New segment
                         id = ++(*nSegments); // Set ID equal to the current number of found segments
