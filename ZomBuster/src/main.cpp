@@ -237,7 +237,9 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         //flip(image, image, 1); // Flip image so it acts like a mirror
-        resize(image, image, image.size() / 2);
+#if __arm__
+        resize(image, image, image.size() / 2); // Make image even smaller on ARM platforms
+#endif
 #if PRINT_TIMING
         printf("Capture = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
         timer = (double)getTickCount();
