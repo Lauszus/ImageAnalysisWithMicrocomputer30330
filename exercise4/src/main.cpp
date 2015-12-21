@@ -15,15 +15,14 @@
  e-mail   :  lauszus@gmail.com
 */
 
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "filter.h"
 #include "histogram.h"
 #include "contours.h"
 #include "misc.h"
 
-using namespace std;
 using namespace cv;
 
 static bool valueChanged;

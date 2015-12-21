@@ -15,13 +15,11 @@
  e-mail   :  lauszus@gmail.com
 */
 
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
+#include <opencv2/imgproc.hpp>
 
 #include "histogram.h"
 #include "misc.h"
 
-using namespace std;
 using namespace cv;
 
 static int map(int x, int in_min, int in_max, int out_min, int out_max) {
@@ -100,6 +98,5 @@ Mat drawHistogram(const histogram_t *histogram, const Mat *image, const Size ima
                                                      j == 1 ? 255 : 0,
                                                      j == 2 ? 255 : 0, 0));
     }
-    //imshow("Histogram", hist);
     return hist;
 }

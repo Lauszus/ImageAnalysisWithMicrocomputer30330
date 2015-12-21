@@ -15,14 +15,12 @@
  e-mail   :  lauszus@gmail.com
 */
 
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
+#include <opencv2/imgproc.hpp>
 
 #include "contours.h"
 #include "histogram.h"
 #include "misc.h"
 
-using namespace std;
 using namespace cv;
 
 static void checkNeighbors(const Mat *image, int *pos, uint8_t *index, const int width, Connected connected, bool whitePixels) {

@@ -15,13 +15,12 @@
  e-mail   :  lauszus@gmail.com
 */
 
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "filter.h"
 #include "histogram.h"
 
-using namespace std;
 using namespace cv;
 
 #define WEBCAM 0

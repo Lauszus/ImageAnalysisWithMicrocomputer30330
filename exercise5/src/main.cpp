@@ -15,10 +15,9 @@
  e-mail   :  lauszus@gmail.com
 */
 
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
-using namespace std;
 using namespace cv;
 
 int main(int argc, char *argv[]) {

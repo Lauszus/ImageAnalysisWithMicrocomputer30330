@@ -15,14 +15,13 @@
  e-mail   :  lauszus@gmail.com
 */
 
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "filter.h"
 #include "histogram.h"
 #include "misc.h"
 
-using namespace std;
 using namespace cv;
 
 // Multiply all kernel coefficients with a gain

@@ -15,8 +15,8 @@
  e-mail   :  lauszus@gmail.com
 */
 
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "contours.h"
 #include "euler.h"
@@ -30,7 +30,6 @@
 
 #define FPS_MS (1.0/0.020) // 50 FPS
 
-using namespace std;
 using namespace cv;
 
 static bool valueChanged;

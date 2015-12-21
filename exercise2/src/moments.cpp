@@ -15,12 +15,10 @@
  e-mail   :  lauszus@gmail.com
 */
 
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
+#include <opencv2/imgproc.hpp>
 
 #include "moments.h"
 
-using namespace std;
 using namespace cv;
 
 moments_t calculateMoments(const Mat *image, bool whitePixels) {
