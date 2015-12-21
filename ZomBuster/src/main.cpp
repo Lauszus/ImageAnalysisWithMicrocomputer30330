@@ -15,10 +15,6 @@
  e-mail   :  lauszus@gmail.com
 */
 
-#if __arm__
-#include <wiringPi.h> // GPIO access library for the Raspberry Pi
-#endif
-
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 
@@ -27,7 +23,6 @@
 #include "filter.h"
 #include "histogram.h"
 #include "moments.h"
-#include "ringbuffer.h"
 #include "segmentation.h"
 
 #define PRINT_TIMING 0
@@ -35,14 +30,20 @@
 
 #define FPS_MS (1.0/0.020) // 50 FPS
 
-RingBuffer zombieBuffer;
-
 using namespace std;
 using namespace cv;
 
 static bool valueChanged;
+static void valueChangedCallBack(int pos) {
+    valueChanged  = true;
+}
 
 #if __arm__
+#include <wiringPi.h> // GPIO access library for the Raspberry Pi
+#include "ringbuffer.h" // Ring buffer class
+
+RingBuffer zombieBuffer;
+
 static const uint8_t leftSolenoidPin = 9, rightSolenoidPin = 7, buttonPin = 8; // These first two pins control the two solenoids the last is a button input
 
 enum Solenoid_e {
@@ -52,17 +53,7 @@ enum Solenoid_e {
 };
 
 static bool solenoidDone;
-#endif
 
-#if !(__arm__)
-#define digitalWrite(pin, val) (void(0)) // Just added so it compiles on non-arm platforms
-#endif
-
-static void valueChangedCallBack(int pos) {
-    valueChanged  = true;
-}
-
-#if __arm__
 static void runSolenoidStateMachine(void) {
     static Solenoid_e state = SOLENOID_READ;
     static int val;
@@ -102,15 +93,8 @@ static void runSolenoidStateMachine(void) {
 #endif
 
 int main(int argc, char *argv[]) {
-    /*for (int i = 0; i < argc; i++)
-        printf("argv[%d] = %s\n", i, argv[i]);*/
-    static const bool DEBUG = argc == 2 ? argv[1][0] == '1' : false;
+    static const bool DEBUG = argc == 2 ? argv[1][0] == '1' : false; // Check if DEBUG flag is set
 
-    // Orange: HSV = 5,15; LowS = 160; LowV = 55
-    // Yellow: 25,35
-    // Green: 60,100
-    // Blue: 90,130
-    // Red: 170,179
 #if 0 // Green rubiks
     int iLowH = 60;
     int iHighH = 100;
@@ -207,16 +191,14 @@ int main(int argc, char *argv[]) {
         printf("wiringPiSetup failed!\n");
         return 1;
     }
-    pinMode(leftSolenoidPin, OUTPUT); // Set both pins to output and set low
+    pinMode(leftSolenoidPin, OUTPUT); // Set both pins to output
     pinMode(rightSolenoidPin, OUTPUT);
-    digitalWrite(leftSolenoidPin, HIGH); // Input is inverted
+    digitalWrite(leftSolenoidPin, HIGH); // Input is inverted, so HIGH disables the solenoid
     digitalWrite(rightSolenoidPin, HIGH);
     pinMode(buttonPin, INPUT);
     pullUpDnControl(buttonPin, PUD_UP); // Enable pull-up resistor
     solenoidDone = true;
-#endif
 
-#if __arm__
     printf("Ready to kill some zombies!\n");
     while (digitalRead(buttonPin)) { // Quit if button is pressed
 #else
@@ -556,15 +538,8 @@ int main(int argc, char *argv[]) {
         runSolenoidStateMachine(); // This state machine control the solenoids without blocking the code
 #endif
 
-    #if 0
-        histogram_t histogram = getHistogram(&image);
-        Mat hist = drawHistogram(&histogram, &image, image.size());
-        imshow("Histogram", hist);
-    #endif
-
-
         double dt =  ((double)getTickCount() - startTimer) / getTickFrequency() * 1000.0;
-        int delay = FPS_MS - dt; // Limit FPS to 50
+        int delay = FPS_MS - dt; // Limit to 50 FPS
         if (delay <= 0) // If the loop has spent more than 30 ms we will just wait the minimum amount
             delay = 1; // Set delay to 1 ms, as 0 will wait infinitely
 #if __arm__
@@ -572,7 +547,7 @@ int main(int argc, char *argv[]) {
 #else
         if (cvWaitKey(delay) == 27) // End if ESC is pressed
 #endif
-            goto end; // TODO: Run solenoids while waiting
+            break; // TODO: Run solenoids while waiting
 
 #if PRINT_FPS
             printf("FPS = %.2f\n", 1.0/(((double)getTickCount() - startTimer) / getTickFrequency()));
@@ -583,10 +558,9 @@ int main(int argc, char *argv[]) {
 #endif
     }
 
-end:
     releaseSegments(); // Release all segments inside segmentation.cpp
 #if __arm__
-    digitalWrite(rightSolenoidPin, HIGH);
+    digitalWrite(rightSolenoidPin, HIGH); // Turn both solenoids off
     digitalWrite(leftSolenoidPin, HIGH);
 #endif
 
