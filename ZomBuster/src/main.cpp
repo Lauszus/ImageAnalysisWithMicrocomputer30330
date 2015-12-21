@@ -121,8 +121,8 @@ int main(int argc, char *argv[]) {
     int iLowV = 10;
     int iHighV = 255;
 
-    int size1 = 20;
-    int size2 = 3;
+    int closingSize = 20;
+    int openingSize = 3;
 
     int windowSize = 3;
     int percentile = 20;
@@ -146,8 +146,8 @@ int main(int argc, char *argv[]) {
     int iLowV = 55;
     int iHighV = 255;
 
-    int size1 = 20; // These are not used on ARM platforms
-    int size2 = 3;
+    int closingSize = 20;
+    int openingSize = 3;
 
     int windowSize = 3;
     int percentile = 50;
@@ -177,8 +177,8 @@ int main(int argc, char *argv[]) {
         cvCreateTrackbar("LowV", controlWindow, &iLowV, 255, valueChangedCallBack); // Value (0 - 255)
         cvCreateTrackbar("HighV", controlWindow, &iHighV, 255, valueChangedCallBack);
 
-        cvCreateTrackbar("Size1", controlWindow, &size1, 50, valueChangedCallBack);
-        cvCreateTrackbar("Size2", controlWindow, &size2, 50, valueChangedCallBack);
+        cvCreateTrackbar("Closing size", controlWindow, &closingSize, 50, valueChangedCallBack);
+        cvCreateTrackbar("Opening size", controlWindow, &openingSize, 50, valueChangedCallBack);
 
         cvCreateTrackbar("Window size", controlWindow, &windowSize, 10, valueChangedCallBack);
         cvCreateTrackbar("Percentile", controlWindow, &percentile, 100, valueChangedCallBack);
@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
 #endif
         if (DEBUG && valueChanged) {
             valueChanged = false;
-            printf("HSV: %u %u\t%u %u\t%u %u\t\tSize: %d %d\tFractile filter: %d %d\tNeighbor size: %d\tObject: %d %d\tPadding: %d\tArea: %d %d\n", iLowH, iHighH, iLowS, iHighS, iLowV, iHighV, size1, size2, windowSize, percentile, neighborSize, objectMin, objectMax, cropPadding, areaMin, areaMax);
+            printf("HSV: %u %u\t%u %u\t%u %u\t\tSize: %d %d\tFractile filter: %d %d\tNeighbor size: %d\tObject: %d %d\tPadding: %d\tArea: %d %d\n", iLowH, iHighH, iLowS, iHighS, iLowV, iHighV, closingSize, openingSize, windowSize, percentile, neighborSize, objectMin, objectMax, cropPadding, areaMin, areaMax);
         }
 
         double startTimer = (double)getTickCount();
@@ -348,17 +348,16 @@ int main(int argc, char *argv[]) {
 #endif
 
         // Apply morphological closing and opening
-        Mat morphologicalFilter = fractileFilterImg.clone();
-#if !(__arm__) // Skip morphological filter on ARM, as it runs very very slow!
-        // Morphological closing (fill small holes in the foreground)
-        dilate(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size1, size1)));
-        erode(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size1, size1)));
+        Mat morphologicalFilterImg = fractileFilterImg.clone();
+        // Morphological closing (Remove small dark spots (i.e. "pepper") and connect small bright cracks)
+        morphologicalFilterImg = morphologicalFilter(&morphologicalFilterImg, DILATION, closingSize, true);
+        morphologicalFilterImg = morphologicalFilter(&morphologicalFilterImg, EROSION, closingSize, true);
 
-        // Morphological opening (remove small objects from the foreground)
-        erode(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size2, size2)));
-        dilate(morphologicalFilter, morphologicalFilter, getStructuringElement(MORPH_ELLIPSE, Size(size2, size2)));
-        //imshow("Morphological", morphologicalFilter);
-#endif
+        // Morphological opening (Remove small bright spots (i.e. "salt") and connect small dark cracks)
+        morphologicalFilterImg = morphologicalFilter(&morphologicalFilterImg, EROSION, openingSize, true);
+        morphologicalFilterImg = morphologicalFilter(&morphologicalFilterImg, DILATION, openingSize, true);
+        //imshow("Morphological", morphologicalFilterImg);
+        //imwrite("img/morphologicalFilterImg.png", morphologicalFilterImg);
 
 #if PRINT_TIMING
         printf("Morph = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
@@ -367,7 +366,7 @@ int main(int argc, char *argv[]) {
 
         // Create a image for each segment
         uint8_t nSegments;
-        Mat *segments = getSegments(&morphologicalFilter, &nSegments, neighborSize, true);
+        Mat *segments = getSegments(&morphologicalFilterImg, &nSegments, neighborSize, true);
 #if PRINT_TIMING
         printf("Segments = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
         timer = (double)getTickCount();
@@ -432,18 +431,18 @@ int main(int argc, char *argv[]) {
 
             Mat window2(2 * fractileFilterImg.size().height, fractileFilterImg.size().width, CV_8UC3);
             Mat top2(window2, Rect(0, 0, fractileFilterImg.size().width, fractileFilterImg.size().height));
-            Mat bot2(window2, Rect(0, fractileFilterImg.size().height, morphologicalFilter.size().width, morphologicalFilter.size().height));
+            Mat bot2(window2, Rect(0, fractileFilterImg.size().height, morphologicalFilterImg.size().width, morphologicalFilterImg.size().height));
 
             // Convert to color images, so it actually shows up
             cvtColor(imgThresholded, imgThresholded, COLOR_GRAY2BGR);
             cvtColor(fractileFilterImg, fractileFilterImg, COLOR_GRAY2BGR);
-            cvtColor(morphologicalFilter, morphologicalFilter, COLOR_GRAY2BGR);
+            cvtColor(morphologicalFilterImg, morphologicalFilterImg, COLOR_GRAY2BGR);
 
             // Copy images to windows
             image.copyTo(top1);
             imgThresholded.copyTo(bot1);
             fractileFilterImg.copyTo(top2);
-            morphologicalFilter.copyTo(bot2);
+            morphologicalFilterImg.copyTo(bot2);
 
             imshow("Window1", window1);
             imshow("Window2", window2);
