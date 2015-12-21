@@ -533,23 +533,26 @@ int main(int argc, char *argv[]) {
         }
         for (int8_t i = nZombies; i > nZombies - zombieDeaths; i--)
             zombieCounter[i - 1] = 0; // Reset to initial value, as they are moved down
-
-        runSolenoidStateMachine(); // This state machine control the solenoids without blocking the code
 #endif
 
         double dt =  ((double)getTickCount() - startTimer) / getTickFrequency() * 1000.0;
         int delay = FPS_MS - dt; // Limit to 50 FPS
         if (delay <= 0) // If the loop has spent more than 50 FPS we will just wait the minimum amount
-            delay = 1; // Set delay to 1 ms, as 0 will wait infinitely
+            delay = 1; // Wait at least 1 ms, as we need to read the keyboard, button, and update the solenoid state machine
+        while (delay--) {
 #if __arm__
-        if (cvWaitKey(delay) == 27 || !digitalRead(buttonPin)) // End if either ESC or button is pressed
+            if (cvWaitKey(1) == 27 || !digitalRead(buttonPin)) // End if either ESC or button is pressed
 #else
-        if (cvWaitKey(delay) == 27) // End if ESC is pressed
+            if (cvWaitKey(1) == 27) // End if ESC is pressed
 #endif
-            break; // TODO: Run solenoids while waiting
+                goto end;
+#if __arm__
+            runSolenoidStateMachine(); // This state machine control the solenoids without blocking the code
+#endif
+        }
 
 #if PRINT_FPS
-            printf("FPS = %.2f\n", 1.0/(((double)getTickCount() - startTimer) / getTickFrequency()));
+        printf("FPS = %.2f\n", 1.0/(((double)getTickCount() - startTimer) / getTickFrequency()));
 #endif
 
 #if PRINT_TIMING
@@ -557,6 +560,7 @@ int main(int argc, char *argv[]) {
 #endif
     }
 
+end:
     releaseSegments(); // Release all segments inside segmentation.cpp
 #if __arm__
     digitalWrite(rightSolenoidPin, HIGH); // Turn both solenoids off
