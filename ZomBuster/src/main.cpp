@@ -298,6 +298,7 @@ int main(int argc, char *argv[]) {
         //imshow("Fractile filter", fractileFilterImg);
         //imwrite("img/fractileFilterImg.png", fractileFilterImg);
 
+#if 1
         // Crop image, so we are only looking at the actual data
         index = 0;
         int minX, maxX, minY, maxY;
@@ -341,6 +342,9 @@ int main(int argc, char *argv[]) {
             height = fractileFilterImg.size().height - 1 - minY;
 
         fractileFilterImg = Mat(fractileFilterImg, Rect(minX, minY, width, height)).clone(); // Do the actual cropping
+#else
+        int minX = 0, minY = 0;
+#endif
 
 #if PRINT_TIMING
         printf("Crop = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
