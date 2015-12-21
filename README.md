@@ -8,4 +8,12 @@ Some exercises in OpenCV I did during the course Image Analysis with Microcomput
 
 Note that the goal of the exercises was to implement the different algorithms ourself and not just use the ones built into OpenCV.
 
+Please follow the following gist: <https://gist.github.com/Lauszus/c8ce73f3177d6455c27c> in order to setup OpenCV on a Raspberry Pi.
+
+# ZomBuster videos
+
+<a href="http://www.youtube.com/watch?v=B6UYqpyV3GU" target="_blank"><img src="http://img.youtube.com/vi/B6UYqpyV3GU/0.jpg" alt="Raspberry Pi playing ZomBuster" width="240" height="180" border="10" /></a>
+
+<a href="http://www.youtube.com/watch?v=u6kGzu4Bt0c" target="_blank"><img src="http://img.youtube.com/vi/u6kGzu4Bt0c/0.jpg" alt="Raspberry Pi playing ZomBuster (slow motion)" width="240" height="180" border="10" /></a>
+
 For more information send me an email at <lauszus@gmail.com>.
