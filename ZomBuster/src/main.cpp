@@ -290,7 +290,7 @@ int main(int argc, char *argv[]) {
         //imwrite("img/imgThresholded.png", imgThresholded);
 
         // Apply fractile filter to remove salt- and pepper noise
-        Mat fractileFilterImg = fractileFilter(&imgThresholded, windowSize, percentile, true);
+        Mat fractileFilterImg = fractileFilter(&imgThresholded, windowSize, percentile, false);
 #if PRINT_TIMING
         printf("Fractile filter = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
         timer = (double)getTickCount();
