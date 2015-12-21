@@ -294,6 +294,7 @@ int main(int argc, char *argv[]) {
                 image.total() * image.channels(), image.size().width, image.size().height, image.total(), image.channels());
     #endif
         //imshow("Image", image);
+        //imwrite("img/image.png", image);
 
         Mat image_hsv;
         cvtColor(image, image_hsv, COLOR_BGR2HSV); // Convert image to HSV
@@ -330,6 +331,7 @@ int main(int argc, char *argv[]) {
         timer = (double)getTickCount();
 #endif
         //imshow("Thresholded image", imgThresholded);
+        //imwrite("img/imgThresholded.png", imgThresholded);
 
         // Apply fractile filter to remove salt- and pepper noise
         Mat fractileFilterImg = fractileFilter(&imgThresholded, windowSize, percentile, true);
@@ -338,6 +340,7 @@ int main(int argc, char *argv[]) {
         timer = (double)getTickCount();
 #endif
         //imshow("Fractile filter", fractileFilterImg);
+        //imwrite("img/fractileFilterImg.png", fractileFilterImg);
 
         // Crop image, so we are only looking at the actual data
         index = 0;
@@ -441,7 +444,8 @@ int main(int argc, char *argv[]) {
                 if (contoursSearch(&segments[i], &contour, CONNECTED_8, true)) // When there is only one object in each segment it is faster to use the contours search
     #endif
                 {
-                    //imshow("LaplacianFilter", contour);
+                    //imshow("contour", contour);
+                    //imwrite("img/contour.png", contour);
 
                     index = 0;
                     for (size_t y = 0; y < contour.size().height; y++) {
@@ -462,6 +466,7 @@ int main(int argc, char *argv[]) {
 #if PRINT_TIMING
         printf("Contour = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
 #endif
+        //imwrite("img/image_contour.png", image);
 
         if (DEBUG) {
             // Create windows

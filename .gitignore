@@ -8,3 +8,4 @@ OldVersions/
 lockfile.lck
 *.bak
 *cache.lib
+ZomBuster/img/*.png
