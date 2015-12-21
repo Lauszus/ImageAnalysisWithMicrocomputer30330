@@ -264,7 +264,6 @@ int main(int argc, char *argv[]) {
         Scalar high = Scalar(iHighH, iHighS, iHighV);
 
         // Threshold the image
-    #if 1
         size_t index = 0;
         for (size_t i = 0; i < image_hsv.total(); i++) {
             bool inRange = true;
@@ -276,12 +275,10 @@ int main(int argc, char *argv[]) {
                 } else if (value < low.val[j] && value > high.val[j]) // Needed for red color where H value will wrap around [170;10]
                     inRange = false;
             }
-            imgThresholded.data[i] = inRange ? 255 : 0;
+            imgThresholded.data[i] = inRange ? 255 : 0; // Draw thresholded image white
             index += image_hsv.channels();
         }
-    #else
-        inRange(image_hsv, low, high, imgThresholded);
-    #endif
+
 #if PRINT_TIMING
         printf("Threshold = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
         timer = (double)getTickCount();
