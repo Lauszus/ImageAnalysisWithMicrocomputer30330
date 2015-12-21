@@ -256,7 +256,7 @@ int main(int argc, char *argv[]) {
                 } else if (value < low.val[j] && value > high.val[j]) // Needed for red color where H value will wrap around [170;10]
                     inRange = false;
             }
-            imgThresholded.data[i] = inRange ? 255 : 0; // Draw thresholded image white
+            imgThresholded.data[i] = inRange ? 255 : 0; // Draw thresholded object white
             index += image_hsv.channels();
         }
 
