@@ -129,8 +129,8 @@ int main(int argc, char *argv[]) {
     int iLowV = 55;
     int iHighV = 255;
 
-    int closingSize = 20;
-    int openingSize = 3;
+    int closingSize = 3;
+    int openingSize = 1;
 
     int windowSize = 3;
     int percentile = 50;
