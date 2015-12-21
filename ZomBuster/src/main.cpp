@@ -28,7 +28,7 @@
 #define PRINT_TIMING 0
 #define PRINT_FPS    0
 
-#define FPS_MS (1.0/0.020) // 50 FPS
+#define FPS_MS (1.0/50.0*1000.0) // 50 FPS
 
 using namespace cv;
 
@@ -539,7 +539,7 @@ int main(int argc, char *argv[]) {
 
         double dt =  ((double)getTickCount() - startTimer) / getTickFrequency() * 1000.0;
         int delay = FPS_MS - dt; // Limit to 50 FPS
-        if (delay <= 0) // If the loop has spent more than 30 ms we will just wait the minimum amount
+        if (delay <= 0) // If the loop has spent more than 50 FPS we will just wait the minimum amount
             delay = 1; // Set delay to 1 ms, as 0 will wait infinitely
 #if __arm__
         if (cvWaitKey(delay) == 27 || !digitalRead(buttonPin)) // End if either ESC or button is pressed
