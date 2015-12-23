@@ -25,8 +25,9 @@
 #include "moments.h"
 #include "segmentation.h"
 
-#define PRINT_TIMING 0
-#define PRINT_FPS    0
+#define WRITE_IMAGES    0
+#define PRINT_TIMING    0
+#define PRINT_FPS       0
 
 #define FPS_MS (1.0/50.0*1000.0) // 50 FPS
 
@@ -231,7 +232,9 @@ int main(int argc, char *argv[]) {
                 image.total() * image.channels(), image.size().width, image.size().height, image.total(), image.channels());
     #endif
         //imshow("Image", image);
-        //imwrite("img/image.png", image);
+#if WRITE_IMAGES
+        imwrite("img/image.png", image);
+#endif
 
         Mat image_hsv;
         cvtColor(image, image_hsv, COLOR_BGR2HSV); // Convert image to HSV
@@ -265,7 +268,9 @@ int main(int argc, char *argv[]) {
         timer = (double)getTickCount();
 #endif
         //imshow("Thresholded image", imgThresholded);
-        //imwrite("img/imgThresholded.png", imgThresholded);
+#if WRITE_IMAGES
+        imwrite("img/imgThresholded.png", imgThresholded);
+#endif
 
         // Apply fractile filter to remove salt- and pepper noise
         Mat fractileFilterImg = fractileFilter(&imgThresholded, windowSize, percentile, true);
@@ -274,7 +279,9 @@ int main(int argc, char *argv[]) {
         timer = (double)getTickCount();
 #endif
         //imshow("Fractile filter", fractileFilterImg);
-        //imwrite("img/fractileFilterImg.png", fractileFilterImg);
+#if WRITE_IMAGES
+        imwrite("img/fractileFilterImg.png", fractileFilterImg);
+#endif
 
 #if 1
         // Crop image, so we are only looking at the actual data
@@ -339,7 +346,9 @@ int main(int argc, char *argv[]) {
         morphologicalFilterImg = morphologicalFilter(&morphologicalFilterImg, EROSION, openingSize, true);
         morphologicalFilterImg = morphologicalFilter(&morphologicalFilterImg, DILATION, openingSize, true);
         //imshow("Morphological", morphologicalFilterImg);
-        //imwrite("img/morphologicalFilterImg.png", morphologicalFilterImg);
+#if WRITE_IMAGES
+        imwrite("img/morphologicalFilterImg.png", morphologicalFilterImg);
+#endif
 
 #if PRINT_TIMING
         printf("Morph = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
@@ -382,7 +391,9 @@ int main(int argc, char *argv[]) {
     #endif
                 {
                     //imshow("contour", contour);
-                    //imwrite("img/contour.png", contour);
+#if WRITE_IMAGES
+                    imwrite("img/contour.png", contour);
+#endif
 
                     index = 0;
                     for (size_t y = 0; y < contour.size().height; y++) {
@@ -403,7 +414,9 @@ int main(int argc, char *argv[]) {
 #if PRINT_TIMING
         printf("Contour = %f ms\t", ((double)getTickCount() - timer) / getTickFrequency() * 1000.0);
 #endif
-        //imwrite("img/image_contour.png", image);
+#if WRITE_IMAGES
+        imwrite("img/image_contour.png", image);
+#endif
 
         if (DEBUG) {
             // Create windows
@@ -440,12 +453,16 @@ int main(int argc, char *argv[]) {
         }
 
         static const int8_t topBorder = 5, bottomBorder = 20, middleOffset = -10;
-        if (DEBUG) {
+        if (DEBUG || WRITE_IMAGES) {
                 // Draw blue lines to indicate borders and middle
                 line(image, Point(0, topBorder), Point(image.size().width, topBorder), Scalar(255, 0, 0)); // Top border
                 line(image, Point(0, image.size().height / 2 + middleOffset), Point(image.size().width, image.size().height / 2 + middleOffset), Scalar(255, 0, 0)); // Middle
                 line(image, Point(0, image.size().height - bottomBorder), Point(image.size().width, image.size().height - bottomBorder), Scalar(255, 0, 0)); // Bottom border
-                imshow("Areas", image);
+                if (DEBUG)
+                    imshow("Areas", image);
+#if WRITE_IMAGES
+                imwrite("img/areas.png", image);
+#endif
         }
 
         // Sort moments in ascending order according to the centerX position
