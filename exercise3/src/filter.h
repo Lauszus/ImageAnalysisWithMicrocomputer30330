@@ -18,6 +18,8 @@
 #ifndef __filter_h__
 #define __filter_h__
 
+#include <iostream>
+
 using namespace cv;
 
 enum MorphologicalType {
@@ -73,7 +75,7 @@ public:
    }
 
     // Used to combine two filter kernels into one
-    const LinearFilter operator + (const LinearFilter& filter) {
+    LinearFilter operator + (const LinearFilter& filter) {
         return *this += filter;
     }
 
@@ -101,9 +103,14 @@ public:
         return *this;
     }
 
+    friend std::ostream& operator << (std::ostream& out, const LinearFilter& filter) {
+        filter.printKernel();
+        return out;
+    }
+
     Mat apply(const Mat *q);
 
-    void printKernel(void) {
+    void printKernel(void) const {
         for (uint8_t i = 0; i < rows; i++) {
             for (uint8_t j = 0; j < columns; j++)
                 printf("%.2f\t", c[i * rows + j]);
@@ -163,8 +170,8 @@ private:
 };
 
 // Multiply filter all kernel coefficients with a gain
-const LinearFilter operator * (const LinearFilter& filter, const float gain);
-const LinearFilter operator * (const float gain, const LinearFilter& filter);
+LinearFilter operator * (const LinearFilter& filter, const float gain);
+LinearFilter operator * (const float gain, const LinearFilter& filter);
 
 class LowpassFilter : public LinearFilter {
 public:

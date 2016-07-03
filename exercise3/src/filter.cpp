@@ -25,11 +25,11 @@
 using namespace cv;
 
 // Multiply all kernel coefficients with a gain
-const LinearFilter operator * (const LinearFilter& filter, const float gain) {
+LinearFilter operator * (const LinearFilter& filter, const float gain) {
     return LinearFilter(filter) *= gain;
 }
 
-const LinearFilter operator * (const float gain, const LinearFilter& filter) {
+LinearFilter operator * (const float gain, const LinearFilter& filter) {
     return filter * gain;
 }
 
