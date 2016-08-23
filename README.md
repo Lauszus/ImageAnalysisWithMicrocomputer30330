@@ -12,6 +12,10 @@ Please follow the following gist: <https://gist.github.com/Lauszus/c8ce73f3177d6
 
 In the final project I decided to make a machine that you could play the mobile game [ZomBuster](https://play.google.com/store/apps/details?id=it.tinygames.zombuster) by itself. More information can be found in the [report](docs/KristianSlothLauszus_s123808_2015.pdf).
 
+Notes on how to setup [Eclipse CDT](https://eclipse.org/cdt) to compile the code can be found at the [wiki](https://github.com/Lauszus/ImageAnalysisWithMicrocomputer30330/wiki).
+
+Some more information can be found at the blog post: <http://blog.tkjelectronics.dk/2016/08/raspberry-pi-playing-zombuster>.
+
 # ZomBuster videos
 
 <a href="http://www.youtube.com/watch?v=B6UYqpyV3GU" target="_blank"><img src="http://img.youtube.com/vi/B6UYqpyV3GU/0.jpg" alt="Raspberry Pi playing ZomBuster" width="240" height="180" border="10" /></a>
